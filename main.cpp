@@ -44,7 +44,6 @@ void menu_travelling_salesman_problem() //Obsługa problemu komiwojażera.
             case 2: //Generowanie miast pseudolosowo.
                 try {
                     s.GenerateRandomCities();
-                    s.PrintCitiesForTheTravellingSalesman();
                 }
                 catch (std::invalid_argument &e) {
                     std::cout << e.what() << std::endl;
@@ -53,7 +52,7 @@ void menu_travelling_salesman_problem() //Obsługa problemu komiwojażera.
 
             case 3: //Wyświetlanie zbioru miast.
                 try {
-                    s.PrintCitiesForTheTravellingSalesman();
+                    s.PrintCitiesForTheTravellingSalesman(true);
                 }
                 catch (std::logic_error &e) {
                     std::cout << e.what() << std::endl;
@@ -63,7 +62,7 @@ void menu_travelling_salesman_problem() //Obsługa problemu komiwojażera.
             case 4: //Algorytm 1. - zachłanny.
                 try {
                     s.GreedyAlgorithm();
-                    s.PrintCitiesForTheTravellingSalesman();
+                    s.PrintCitiesForTheTravellingSalesman(false);
                     std::cout << std::endl;
                     s.PrintSolution();
                 }
@@ -75,7 +74,7 @@ void menu_travelling_salesman_problem() //Obsługa problemu komiwojażera.
             case 5: //Algorytm 2. - metoda podziału i ograniczeń.
                 try {
                     s.BranchAndBoundAlgorithm();
-                    s.PrintCitiesForTheTravellingSalesman();
+                    s.PrintCitiesForTheTravellingSalesman(false);
                     std::cout << std::endl;
                     s.PrintSolution();
                 }

@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <map>
 
-using namespace std;
 struct Node {
     int cost;                     // path cost till this node
     std::pair<int, int> path;        // path segment (example : 0 1)
@@ -30,82 +29,64 @@ class TravellingSalesmanProblem {
 
 private:
     int amountOfCities;
-    int *result;
     int **arrayOfMatrixOfCities;
-    int min;
     int reference = std::numeric_limits<int>::max();
-    int infinity = 999999999;    // smallest cost found
     int *optimalWay_Solution;
     int length;
     bool setGreedyAlgorithm;
     std::string fileName;
     std::string graphType;
+    bool randomGeneratorData;
+    std::deque<Node> tree;
+    std::vector<int> lastTour;
 
+    std::vector<int> orderPath(int index, int begin);
 
 public:
+    TravellingSalesmanProblem();
+
+    ~TravellingSalesmanProblem();
+
     void DeleteTravellingSalesman();
+
+    void LoadArrayOfMatrixOfCities(long long int **_cities, int _amountOfCities,
+                                   std::string _fileName, std::string _graphType);
 
     void GenerateRandomCities(int amountOfCities = 0, int maxDistanceBetweenCity = 99);
 
-    void PrintCitiesForTheTravellingSalesman();
+    void PrintCitiesForTheTravellingSalesman(bool printInputMatrix);
 
     void GreedyAlgorithm();
 
     void PrintSolution();
 
-    std::deque<Node> tree;
-    std::vector<int> lastTour;                           // last found tour
-    long long int minCost;
+    void removeColumn(std::vector<std::vector<int>> &matrix, int column);
 
-    ~TravellingSalesmanProblem();
-
-    TravellingSalesmanProblem();
-
-    void generateFile();
-
-    void readDataFromFile(std::string data);
-
-    void showResult();
-
-    void showCollection();
-
-    void greedyAlgorithm();
-
-    void removeColumn(vector<vector<int>> &matrix, int column, int amountOfCitiesInActualSubset);
-
-    void removeRow(vector<vector<int>> &matrix, int row, int amountOfCitiesInActualSubset);
+    void removeRow(std::vector<std::vector<int>> &matrix, int row);
 
     void BranchAndBoundAlgorithm();
 
-    int calculateRegret(vector<vector<int>> &m, std::pair<int, int> &path, std::pair<int, int> &pos,
+    int calculateRegret(std::vector<std::vector<int>> &m, std::pair<int, int> &path, std::pair<int, int> &pos,
                         int amountOfCitiesInActualSubset);
 
-    int getMinimumRow(vector<vector<int>> &cities, int row, int skippedColumn, int amountOfCitiesInActualSubset);
+    int
+    getMinimumRow(std::vector<std::vector<int>> &cities, int row, int skippedColumn, int amountOfCitiesInActualSubset);
 
-    int getMinimumColumn(vector<vector<int>> &cities, int row, int skippedColumn, int amountOfCitiesInActualSubset);
+    int getMinimumColumn(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
+                         int amountOfCitiesInActualSubset);
 
-    int reduceRow(vector<vector<int>> &cites, int row, int amountOfCitiesInActualSubset);
+    int reduceRow(std::vector<std::vector<int>> &cites, int row, int amountOfCitiesInActualSubset);
 
-    int reduceColumn(vector<vector<int>> &cities, int col, int amountOfCitiesInActualSubset);
+    int reduceColumn(std::vector<std::vector<int>> &cities, int col, int amountOfCitiesInActualSubset);
 
-    void LoadArrayOfMatrixOfCities(long long int **_cities, int _amountOfCities,
-                                   std::string _fileName, std::string _graphType);
+    int reduceMatrix(std::vector<std::vector<int>> &cities, int amountOfCitiesInActualSubset);
 
-    int reduceMatrix(vector<vector<int>> &cities, int amountOfCitiesInActualSubset);
-
-    void removeSubTour(vector<vector<int>> &activeRoute, int index, std::pair<int, int> &path,
+    void removeSubTour(std::vector<std::vector<int>> &activeRoute, int index, std::pair<int, int> &path,
                        int amountOfCitiesInActualSubset);
 
-    void addLastPath(vector<vector<int>> &m);
+    void addLastPath(std::vector<std::vector<int>> &m);
 
-    std::vector<int> orderPath(int index, int begin);
-
-    void bruteForce();
-
-    void permutation(int *tab, int i);
-
-    void checkTourCost(vector<vector<int>> &cities);
-
+    void checkTourCost(std::vector<std::vector<int>> &cities);
 };
 
 
