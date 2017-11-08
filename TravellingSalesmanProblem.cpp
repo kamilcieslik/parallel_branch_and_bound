@@ -5,6 +5,8 @@
 #include "TravellingSalesmanProblem.h"
 #include <stack>
 
+Subset::Subset() : isK1(true), parent(INT_MIN) {
+}
 
 TravellingSalesmanProblem::TravellingSalesmanProblem() : amountOfCities(0), arrayOfMatrixOfCities(nullptr),
                                                          optimalWay_GreedyAlgorithmSolution(nullptr),
@@ -185,26 +187,6 @@ void TravellingSalesmanProblem::PrintCitiesForTheTravellingSalesman(bool printIn
     std::cout << "Number of cities:\t" << amountOfCities << std::endl;
 }
 
-void Print(std::vector<std::vector<int>> d) {
-    for (auto i = 0; i < d.size(); i++) {
-        for (auto j = 0; j < d.size(); j++) {
-            if (j == 0)
-                if (d[i][j] == INT_MAX)
-                    std::cout << "INF";
-                else
-                    std::cout  << d[i][j];
-            else {
-                if (d[i][j] == INT_MAX)
-                    std::cout << "\tINF";
-                else
-                    std::cout << "\t" << d[i][j];
-            }
-        }
-        std::cout<<std::endl;
-    }
-    std::cout << "\v" << std::endl;
-}
-
 // -------------------------------------------------------------------
 // Algorytm zachłanny dla problemu komiwojażera.
 // -------------------------------------------------------------------
@@ -251,7 +233,9 @@ void TravellingSalesmanProblem::GreedyAlgorithm() {
     delete[] visitedCities;
 }
 
-
+// -------------------------------------------------------------------
+// Algorytm podziału i ograniczeń dla problemu komiwojażera.
+// -------------------------------------------------------------------
 void TravellingSalesmanProblem::BranchAndBoundAlgorithm() {
     if (arrayOfMatrixOfCities == nullptr)
         throw std::logic_error("Brak miast do przeprowadzenia algorytmu problemu komiwojażera.");
@@ -264,99 +248,50 @@ void TravellingSalesmanProblem::BranchAndBoundAlgorithm() {
 
     std::vector<std::vector<int>> InputMatrixOfCities(static_cast<unsigned long>(amountOfCities + 1),
                                                       std::vector<int>(static_cast<unsigned long>(amountOfCities + 1)));
+    Subset subsetK2;
+    subsetK2.isK1 = false;
+    Subset subsetK1;
 
-    for (int i = 0; i < amountOfCities + 1; i++) {
-        InputMatrixOfCities[i][0] = i;
-        InputMatrixOfCities[0][i] = i;
-    }
+    PrepareMatrix(InputMatrixOfCities);
 
-    for (auto i = 0; i < amountOfCities; i++) {
-        for (auto j = 0; j < amountOfCities; j++) {
-            InputMatrixOfCities[i + 1][j + 1] = arrayOfMatrixOfCities[i][j];
-        }
-        InputMatrixOfCities[i + 1][i + 1] = INT_MAX;
-    }
-
-    Node subsetK1;
-    Node subsetK2;
-    subsetK2.bar = true;
     std::pair<int, int> positionOfMatrixCell;
-    std::stack<std::pair<int, std::vector<std::vector<int>>>> stackOfMatrices;
     std::pair<int, std::vector<std::vector<int>>> matrix;
+    std::stack<std::pair<int, std::vector<std::vector<int>>>> stackOfMatrices;
 
-    matrix.first = 0;
+    int id = 0;
+    matrix.first = id;
     matrix.second = InputMatrixOfCities;
     stackOfMatrices.push(matrix);
 
-    //
-    std::cout<<std::endl;
-    std::cout<<"Macierz wejściowa: "<<std::endl;
-    Print(matrix.second);
-
     while (!stackOfMatrices.empty()) {
-        int id = stackOfMatrices.top().first;
-
+        id = stackOfMatrices.top().first;
         std::vector<std::vector<int>> actualMatrix(stackOfMatrices.top().second);
         stackOfMatrices.pop();
 
-        std::cout<<std::endl;
-        std::cout<<"new Po ściągnięciu: "<<std::endl;
-        Print(actualMatrix);
-
-        subsetK1.lowerBound = StandarizationOfMatrix(actualMatrix, (int) actualMatrix.size());
+        subsetK1.lowerBound = StandarizationOfMatrix(actualMatrix);
         if (id == 0) {
             treeOfSubsets.push_back(subsetK1);
         }
 
-        std::cout<<std::endl;
-        std::cout<<"new Po standaryzacji"<<std::endl;
-        std::cout<<"*K1 lower bound: "<< subsetK1.lowerBound <<" upperbound: "<< upperBound << std::endl;
-        Print(actualMatrix);
-
         while (actualMatrix.size() > 3 and treeOfSubsets[id].lowerBound < upperBound) {
-            int z = CalculateCostOfResignation(actualMatrix, subsetK1.path, positionOfMatrixCell,
-                                               (int) actualMatrix.size());
-            subsetK2.lowerBound = treeOfSubsets[id].lowerBound + z;
-
-            std::cout<<std::endl;
-            std::cout<<"* Cost of resignation"<< z << std::endl;
-            std::cout<<"*K2 lower bound + koszt rez "<< subsetK2.lowerBound <<" upperbound: "<< upperBound << std::endl;
-            Print(actualMatrix);
+            subsetK2.lowerBound = treeOfSubsets[id].lowerBound +
+                                  CalculateCostOfResignation(actualMatrix, subsetK1.route, positionOfMatrixCell);
             subsetK2.parent = id;
             treeOfSubsets.push_back(subsetK2);
 
             if (subsetK2.lowerBound < upperBound) {
-                std::cout<<std::endl;
-                std::cout<<"* Dodanie K2 (lb<uB)"<<std::endl;
-                Print(actualMatrix);
-
                 matrix.first = (int) (treeOfSubsets.size() - 1);
                 matrix.second = actualMatrix;
                 matrix.second[positionOfMatrixCell.first][positionOfMatrixCell.second] = INT_MAX;
                 stackOfMatrices.push(matrix);
-                std::cout<<std::endl;
-                std::cout<<"* K2 z blokadą do drzewa:"<<std::endl;
-                Print(matrix.second);
             }
 
             MatrixShortening(actualMatrix, positionOfMatrixCell.first, positionOfMatrixCell.second);
-            std::cout<<std::endl;
-            std::cout<<"* Skrocenie"<<std::endl;
-            Print(actualMatrix);
+            EliminationOfSubtour(actualMatrix, (int) (treeOfSubsets.size() - 1), subsetK1.route);
 
-            EliminationOfSubtour(actualMatrix, (int) (treeOfSubsets.size() - 1), subsetK1.path,
-                                 (int) actualMatrix.size());
-            std::cout<<std::endl;
-            std::cout<<"* Eliminacja podcyklu"<<std::endl;
-            Print(actualMatrix);
-            subsetK1.lowerBound =
-                    treeOfSubsets[id].lowerBound + StandarizationOfMatrix(actualMatrix, (int) actualMatrix.size());
+            subsetK1.lowerBound = treeOfSubsets[id].lowerBound + StandarizationOfMatrix(actualMatrix);
             subsetK1.parent = id;
             treeOfSubsets.push_back(subsetK1);
-            std::cout<<std::endl;
-            std::cout<<"*K1 standaryzacja"<<std::endl;
-            std::cout<<"*K1 lower bound + stand"<< subsetK1.lowerBound <<" upperbound: "<< upperBound << std::endl;
-            Print(actualMatrix);
 
             id = (int) (treeOfSubsets.size() - 1);
         }
@@ -364,11 +299,7 @@ void TravellingSalesmanProblem::BranchAndBoundAlgorithm() {
         if (actualMatrix.size() == 3) {
             if (subsetK1.lowerBound < upperBound) {
                 upperBound = subsetK1.lowerBound;
-                SetOptimalWay(actualMatrix, (int) (treeOfSubsets.size() + 1), 1);
-                std::cout<<std::endl;
-                std::cout<<"* Konec obiegu"<<std::endl;
-                std::cout<<"* lower bound: "<< subsetK1.lowerBound <<" upperbound: "<< upperBound << std::endl;
-                Print(actualMatrix);
+                SetOptimalWay(actualMatrix, (int) (treeOfSubsets.size() + 1));
             }
         }
     }
@@ -400,20 +331,33 @@ void TravellingSalesmanProblem::PrintSolution() {
         std::cout << "Length\t= " << this->upperBound << std::endl;
         std::cout << "Path\t= ";
         for (auto i:this->optimalWay_BranchAndBoundSolution) {
-            std::cout << i - 1 << " - "; //do zmiany (indeks w dół)
+            std::cout << i - 1 << " - ";
         }
         std::cout << "0" << std::endl;
     }
 }
 
+void TravellingSalesmanProblem::PrepareMatrix(std::vector<std::vector<int>> &m) {
+    for (int i = 0; i < m.size(); i++) {
+        m[i][0] = i;
+        m[0][i] = i;
+    }
+
+    for (auto i = 0; i < m.size() - 1; i++) {
+        for (auto j = 0; j < m.size() - 1; j++) {
+            m[i + 1][j + 1] = arrayOfMatrixOfCities[i][j];
+        }
+        m[i + 1][i + 1] = INT_MAX;
+    }
+}
+
 void TravellingSalesmanProblem::EliminationOfSubtour(std::vector<std::vector<int>> &activeRoute, int index,
-                                                     std::pair<int, int> &path,
-                                                     int amountOfCitiesInActualSubset) {
+                                                     std::pair<int, int> &path) {
     std::vector<std::pair<int, int> > paths;
     // Research of all the included path
     while (index != 0) { // Iterate until we are not arrived at the root
-        if (!treeOfSubsets[index].bar) {
-            paths.push_back(treeOfSubsets[index].path);
+        if (treeOfSubsets[index].isK1) {
+            paths.push_back(treeOfSubsets[index].route);
         }
         index = (int) treeOfSubsets[index].parent;
     }
@@ -444,7 +388,7 @@ void TravellingSalesmanProblem::EliminationOfSubtour(std::vector<std::vector<int
     std::pair<int, int> pos;
     int founds = 0;
     // Research of the segment to delete in the matrix
-    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
+    for (int i = 1; i < activeRoute.size(); i++) {
         if (activeRoute[i][0] == subtour.back()) {
             pos.first = i;
             founds++;
@@ -464,14 +408,13 @@ void TravellingSalesmanProblem::EliminationOfSubtour(std::vector<std::vector<int
 
 int
 TravellingSalesmanProblem::CalculateCostOfResignation(std::vector<std::vector<int>> &m, std::pair<int, int> &path,
-                                                      std::pair<int, int> &pos,
-                                                      int amountOfCitiesInActualSubset) {
-    int max = -1;
-    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
-        for (int j = 1; j < amountOfCitiesInActualSubset; j++) {
+                                                      std::pair<int, int> &pos) {
+    int max = INT_MIN;
+    for (int i = 1; i < m.size(); i++) {
+        for (int j = 1; j < m.size(); j++) {
             if (m[i][j] == 0) {
-                int val = GetMinimumRow(m, i, j, amountOfCitiesInActualSubset) +
-                          GetMinimumColumn(m, j, i, amountOfCitiesInActualSubset);
+                int val = GetMinimumRow(m, i, j, m.size()) +
+                          GetMinimumColumn(m, j, i, m.size());
                 if (max < val || max < 0) {
                     max = val;
                     pos.first = i;
@@ -534,62 +477,61 @@ int TravellingSalesmanProblem::SubtractMinimalValuesFromTheColumns(std::vector<s
     return min;
 }
 
-int TravellingSalesmanProblem::StandarizationOfMatrix(std::vector<std::vector<int>> &cities,
-                                                      int amountOfCitiesInActualSubset) {
+int TravellingSalesmanProblem::StandarizationOfMatrix(std::vector<std::vector<int>> &cities) {
     int minRowTotal = 0;
-    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
-        minRowTotal += SubtractMinimalValuesFromTheRows(cities, i, amountOfCitiesInActualSubset);
+    for (int i = 1; i < cities.size(); i++) {
+        minRowTotal += SubtractMinimalValuesFromTheRows(cities, i, cities.size());
     }
 
     int minColTotal = 0;
-    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
-        minColTotal += SubtractMinimalValuesFromTheColumns(cities, i, amountOfCitiesInActualSubset);
+    for (int i = 1; i < cities.size(); i++) {
+        minColTotal += SubtractMinimalValuesFromTheColumns(cities, i, cities.size());
     }
 
     return minRowTotal + minColTotal;
 }
 
-void TravellingSalesmanProblem::SetOptimalWay(std::vector<std::vector<int>> &m, int index, int begin) {
-    Node normalNode;
+void TravellingSalesmanProblem::SetOptimalWay(std::vector<std::vector<int>> &m, int index) {
+    Subset K1;
 
     for (int i = 1; i < 3; i++) {
         for (int j = 1; j < 3; j++) {
             if (m[i][j] == 0) {
-                normalNode.path.first = m[i][0];
-                normalNode.path.second = m[0][j];
-                normalNode.lowerBound = treeOfSubsets.back().lowerBound;
-                normalNode.parent = treeOfSubsets.size() - 1;
-                treeOfSubsets.push_back(normalNode);
+                K1.lowerBound = treeOfSubsets.back().lowerBound;
+                K1.parent = treeOfSubsets.size() - 1;
+                K1.route.first = m[i][0];
+                K1.route.second = m[0][j];
+                treeOfSubsets.push_back(K1);
             }
         }
     }
 
-    std::vector<std::pair<int, int> > path;
+    std::vector<std::pair<int, int> > route;
     // Retrieval of the path stored in a branch's tree
     while (index != 0) {    // Iterate until we are not arrived at the root
-        if (!treeOfSubsets[index].bar) {     // If it is a node without regret cost
-            path.push_back(treeOfSubsets[index].path);   // then we add this segment to the path
+        if (treeOfSubsets[index].isK1) {     // If it is a node without regret cost
+            route.push_back(treeOfSubsets[index].route);   // then we add this segment to the path
         }
         index = (int) treeOfSubsets[index].parent;
     }
 
     std::vector<int> tour;
     // Research of the path segment containing begin
-    int pathSize = (int) path.size();
+    int pathSize = (int) route.size();
     for (int i = 0; i < pathSize; i++) {
-        if (path[i].first == begin) {
-            tour.push_back(path[i].first);
-            tour.push_back(path[i].second);
-            path.erase(path.begin() + i);
+        if (route[i].first == 1) {
+            tour.push_back(route[i].first);
+            tour.push_back(route[i].second);
+            route.erase(route.begin() + i);
         }
     }
 
     // Ordering of the rest of the tour
     while (tour.size() != pathSize) {
-        for (int i = 0; i < path.size(); i++) {
-            if (tour.back() == path[i].first) {
-                tour.push_back(path[i].second);
-                path.erase(path.begin() + i);
+        for (int i = 0; i < route.size(); i++) {
+            if (tour.back() == route[i].first) {
+                tour.push_back(route[i].second);
+                route.erase(route.begin() + i);
             }
         }
     }
@@ -598,12 +540,12 @@ void TravellingSalesmanProblem::SetOptimalWay(std::vector<std::vector<int>> &m, 
 }
 
 void TravellingSalesmanProblem::MatrixShortening(std::vector<std::vector<int>> &data, int row, int col) {
-    std::vector<std::vector<int> >::iterator it = data.begin() + row;
-    data.erase(it);
+    auto it_row = data.begin() + row;
+    data.erase(it_row);
 
-    for (int row = 0; row < data.size(); row++) {
-        std::vector<int>::iterator it = data[row].begin() + col;
-        data[row].erase(it);
+    for (int i = 0; i < data.size(); i++) {
+        auto it_col = data[i].begin() + col;
+        data[i].erase(it_col);
     }
 }
 

@@ -18,11 +18,12 @@
 #include <algorithm>
 #include <map>
 
-struct Node {
-    int lowerBound;                     // path cost till this node
-    std::pair<int, int> path;        // path segment (example : 0 1)
-    bool bar = false;           // included or excluded path segment
-    long parent = -1;     // parent id node (in tree)
+struct Subset {
+    std::pair<int, int> route;
+    int lowerBound;
+    long parent;
+    bool isK1;
+    Subset();
 };
 
 class TravellingSalesmanProblem {
@@ -38,10 +39,10 @@ private:
     std::string fileName;
     std::string graphType;
     bool randomGeneratorData;
-    std::deque<Node> treeOfSubsets;
+    std::vector<Subset> treeOfSubsets;
     std::vector<int> optimalWay_BranchAndBoundSolution;
 
-    int StandarizationOfMatrix(std::vector<std::vector<int>> &cities, int amountOfCitiesInActualSubset);
+    int StandarizationOfMatrix(std::vector<std::vector<int>> &cities);
 
     int GetMinimumRow(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
                       int amountOfCitiesInActualSubset);
@@ -56,19 +57,16 @@ private:
                                             int amountOfCitiesInActualSubset);
 
     int CalculateCostOfResignation(std::vector<std::vector<int>> &m, std::pair<int, int> &path,
-                                   std::pair<int, int> &pos,
-                                   int amountOfCitiesInActualSubset);
+                                   std::pair<int, int> &pos);
 
     void MatrixShortening(std::vector<std::vector<int>> &matrix, int row, int col);
 
-    void EliminationOfSubtour(std::vector<std::vector<int>> &activeRoute, int index, std::pair<int, int> &path,
-                              int amountOfCitiesInActualSubset);
+    void EliminationOfSubtour(std::vector<std::vector<int>> &activeRoute, int index, std::pair<int, int> &path);
 
-    void AddLastPath(std::vector<std::vector<int>> &m);
-
-    void SetOptimalWay(std::vector<std::vector<int>> &m, int index, int begin);
+    void SetOptimalWay(std::vector<std::vector<int>> &m, int index);
 
 public:
+    void PrepareMatrix(std::vector<std::vector<int>> &m);
     TravellingSalesmanProblem();
 
     ~TravellingSalesmanProblem();
