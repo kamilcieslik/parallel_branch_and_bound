@@ -5,9 +5,7 @@
 #include "AlgorithmTest.h"
 #include "TimeMeasurement.h"
 #include "TravellingSalesmanProblem.h"
-#include <cmath>
-#include <vector>
-#include <fstream>
+#include "TSPLIB_Parser.h"
 
 AlgorithmTest::AlgorithmTest() {
 
@@ -17,28 +15,29 @@ AlgorithmTest::~AlgorithmTest() {
 
 }
 
-void AlgorithmTest::TravellingSalesmanProblem_Test_Greedy(int numberOfRepetitions, int maxDistanceBetweenCity) {
+void AlgorithmTest::TravellingSalesmanProblem_Test_Greedy(int numberOfRepetitions) {
     TravellingSalesmanProblem s;
     TimeMeasurement t;
     std::vector<double> results;
-    int firstAmountOfCities = 50;
-    int amountOfCities = firstAmountOfCities;
+    int amountOfCities = 33;
     double sum = 0;
+    std::string path = "test/atsp/ftv33.atsp";
     std::ofstream file;
-    file.open("test_tsp_greedy.txt", std::ios::out);
+    file.open("test_atsp_greedy.txt", std::ios::out);
     file << "Test czasów wykonywania algorytmu zachłannego problemu komiwojażera z dnia - " << t.currentDateTime()
          << ".\nDla każdego zestawu danych wyniki uśrednione z " << numberOfRepetitions
          << " losowych instancji." << std::endl << std::endl << std::endl;
-    
-    
-    for (auto i = 0; i < 5; i++) {
+
+    for (auto i = 0; i < 4; i++) {
         results.push_back((double &&) amountOfCities);
         
         //Algorytm zachłanny.
         sum = 0;
         
         for (auto j = 0; j < numberOfRepetitions; j++) {
-            s.GenerateRandomCities(amountOfCities, maxDistanceBetweenCity);
+            TSPLIB_Parser parser(path);
+            s.LoadArrayOfMatrixOfCities(parser.GetArrayOfMatrixCities(), parser.GetDimension(),
+                                        parser.GetFileName(), parser.GetGraphType());
             t.TimeStart();
             s.GreedyAlgorithm();
             t.TimeStop();
@@ -46,56 +45,62 @@ void AlgorithmTest::TravellingSalesmanProblem_Test_Greedy(int numberOfRepetition
         }
         sum = sum / numberOfRepetitions;
         results.push_back(sum);
+        results.push_back(s.GetTourLength("greedy"));
         
         std::cout << "." << std::endl << std::endl;
         
-        //Zwiększenie ilości miast.
+        //Zwiększenie ilości miast - wczytanie danych z kolejnego pliku.
         
-        if (amountOfCities == 50) {
-            amountOfCities = 100;
-        } else if (amountOfCities == 100) {
-            amountOfCities = 200;
-        } else if (amountOfCities == 200) {
-            amountOfCities = 350;
-        } else if (amountOfCities == 350) {
-            amountOfCities = 600;
+        if (path == "test/atsp/ftv33.atsp") {
+            path = "test/atsp/ftv35.atsp";
+            amountOfCities = 33;
+        }
+        else if (path == "test/atsp/ftv35.atsp") {
+            path = "test/atsp/ftv38.atsp";
+            amountOfCities = 38;
+        }
+        else if (path == "test/atsp/ftv38.atsp") {
+            path = "test/atsp/ftv47.atsp";
+            amountOfCities = 47;
         }
     }
     
-    file << "Il_miast\tZachłanny\n";
+    file << "Il_miast\tZachłanny\tDługość\n";
     for (int i = 0; i < results.size(); i++) {
         file << results[i] << "\t";
-        if (((i + 1) % 2) == 0) {
+        if (((i + 1) % 3) == 0) {
             file << "\n";
         }
     }
     
     file << std::endl << std::endl << "Czas zakończenia testów - " << t.currentDateTime() << "." << std::endl;
     file.close();
+    std::cout << "Test zakończony pomyślnie." << std::endl << std::endl;
 }
 
-void AlgorithmTest::TravellingSalesmanProblem_Test_BranchAndBound(int numberOfRepetitions, int maxDistanceBetweenCity) {
+void AlgorithmTest::TravellingSalesmanProblem_Test_BranchAndBound(int numberOfRepetitions) {
     TravellingSalesmanProblem s;
     TimeMeasurement t;
     std::vector<double> results;
-    int firstAmountOfCities = 13;
-    int amountOfCities = firstAmountOfCities;
+    int amountOfCities = 33;
     double sum = 0;
+    std::string path = "test/atsp/ftv33.atsp";
     std::ofstream file;
-    file.open("test_tsp_brute_force.txt", std::ios::out);
-    file << "Test czasów wykonywania algorytmu podziału i ograniczeń komiwojażera z dnia - " << t.currentDateTime()
+    file.open("test_atsp_branch_and_bound.txt", std::ios::out);
+    file << "Test czasów wykonywania algorytmu podziału i ograniczeń problemu komiwojażera z dnia - " << t.currentDateTime()
          << ".\nDla każdego zestawu danych wyniki uśrednione z " << numberOfRepetitions
          << " losowych instancji." << std::endl << std::endl << std::endl;
-    
-    
-    for (auto i = 0; i < 5; i++) {
+
+    for (auto i = 0; i < 4; i++) {
         results.push_back((double &&) amountOfCities);
-        
+
         //Algorytm podziału i ograniczeń.
         sum = 0;
-        
+
         for (auto j = 0; j < numberOfRepetitions; j++) {
-            s.GenerateRandomCities(amountOfCities, maxDistanceBetweenCity);
+            TSPLIB_Parser parser(path);
+            s.LoadArrayOfMatrixOfCities(parser.GetArrayOfMatrixCities(), parser.GetDimension(),
+                                        parser.GetFileName(), parser.GetGraphType());
             t.TimeStart();
             s.BranchAndBoundAlgorithm();
             t.TimeStop();
@@ -103,31 +108,36 @@ void AlgorithmTest::TravellingSalesmanProblem_Test_BranchAndBound(int numberOfRe
         }
         sum = sum / numberOfRepetitions;
         results.push_back(sum);
-        
+        results.push_back(s.GetTourLength("branchandbound"));
+
         std::cout << "." << std::endl << std::endl;
-        
-        //Zwiększenie ilości miast.
-        
-        if (amountOfCities == 3) {
-            amountOfCities = 5;
-        } else if (amountOfCities == 5) {
-            amountOfCities = 8;
-        } else if (amountOfCities == 8) {
-            amountOfCities = 11;
-        } else if (amountOfCities == 11) {
-            amountOfCities = 13;
+
+        //Zwiększenie ilości miast - wczytanie danych z kolejnego pliku.
+
+        if (path == "test/atsp/ftv33.atsp") {
+            path = "test/atsp/ftv35.atsp";
+            amountOfCities = 35;
+        }
+        else if (path == "test/atsp/ftv35.atsp") {
+            path = "test/atsp/ftv38.atsp";
+            amountOfCities = 38;
+        }
+        else if (path == "test/atsp/ftv38.atsp") {
+            path = "test/atsp/ftv44.atsp";
+            amountOfCities = 44;
         }
     }
-    
-    file << "Il_miast\tPodziały_i_ograniczenia\n";
+
+    file << "Il_miast\tPodziały_i_ograniczenia\tDługość\n";
     for (int i = 0; i < results.size(); i++) {
         file << results[i] << "\t";
-        if (((i + 1) % 2) == 0) {
+        if (((i + 1) % 3) == 0) {
             file << "\n";
         }
     }
-    
+
     file << std::endl << std::endl << "Czas zakończenia testów - " << t.currentDateTime() << "." << std::endl;
     file.close();
+    std::cout << "Test zakończony pomyślnie." << std::endl << std::endl;
 }
 

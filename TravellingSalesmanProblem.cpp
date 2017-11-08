@@ -7,7 +7,8 @@
 
 
 TravellingSalesmanProblem::TravellingSalesmanProblem() : amountOfCities(0), arrayOfMatrixOfCities(nullptr),
-                                                         optimalWay_Solution(nullptr) {
+                                                         optimalWay_GreedyAlgorithmSolution(nullptr),
+                                                         upperBound(INT_MAX) {
 }
 
 TravellingSalesmanProblem::~TravellingSalesmanProblem() {
@@ -21,9 +22,40 @@ void TravellingSalesmanProblem::DeleteTravellingSalesman() {
     delete[] arrayOfMatrixOfCities;
     arrayOfMatrixOfCities = nullptr;
 
-    if (optimalWay_Solution != nullptr) {
-        delete[] optimalWay_Solution;
-        optimalWay_Solution = nullptr;
+    if (optimalWay_GreedyAlgorithmSolution != nullptr) {
+        delete[] optimalWay_GreedyAlgorithmSolution;
+        optimalWay_GreedyAlgorithmSolution = nullptr;
+    }
+}
+
+void TravellingSalesmanProblem::ReadCitiesFromFile(std::string path) {
+    if (arrayOfMatrixOfCities != nullptr)
+        DeleteTravellingSalesman();
+
+    std::fstream file(path, std::ios::in);
+    if (file.is_open()) {
+        file >> amountOfCities;
+
+        arrayOfMatrixOfCities = new int *[amountOfCities];
+        for (auto i = 0; i < amountOfCities; i++) {
+            arrayOfMatrixOfCities[i] = new int[amountOfCities];
+        }
+        int *securityMatrixForReadingPerLine = new int[amountOfCities];
+
+        for (auto i = 0; i < amountOfCities; i++) {
+            for (auto j = 0; j < amountOfCities; j++) {
+                if (file.fail()) throw std::logic_error("Błąd odczytu danych w pliku.");
+                file >> securityMatrixForReadingPerLine[j];
+            }
+
+            for (auto j = 0; j < amountOfCities; j++) {
+                arrayOfMatrixOfCities[i][j] = securityMatrixForReadingPerLine[j];
+            }
+        }
+        delete[] securityMatrixForReadingPerLine;
+        file.close();
+    } else {
+        std::cout << "Błąd otwarcia pliku.\n";
     }
 }
 
@@ -153,6 +185,26 @@ void TravellingSalesmanProblem::PrintCitiesForTheTravellingSalesman(bool printIn
     std::cout << "Number of cities:\t" << amountOfCities << std::endl;
 }
 
+void Print(std::vector<std::vector<int>> d) {
+    for (auto i = 0; i < d.size(); i++) {
+        for (auto j = 0; j < d.size(); j++) {
+            if (j == 0)
+                if (d[i][j] == INT_MAX)
+                    std::cout << "INF";
+                else
+                    std::cout  << d[i][j];
+            else {
+                if (d[i][j] == INT_MAX)
+                    std::cout << "\tINF";
+                else
+                    std::cout << "\t" << d[i][j];
+            }
+        }
+        std::cout<<std::endl;
+    }
+    std::cout << "\v" << std::endl;
+}
+
 // -------------------------------------------------------------------
 // Algorytm zachłanny dla problemu komiwojażera.
 // -------------------------------------------------------------------
@@ -160,11 +212,11 @@ void TravellingSalesmanProblem::GreedyAlgorithm() {
     if (arrayOfMatrixOfCities == nullptr)
         throw std::logic_error("Brak miast do przeprowadzenia algorytmu problemu komiwojażera.");
 
-    if (optimalWay_Solution != nullptr)
-        delete[] optimalWay_Solution;
+    if (optimalWay_GreedyAlgorithmSolution != nullptr)
+        delete[] optimalWay_GreedyAlgorithmSolution;
 
     setGreedyAlgorithm = true;
-    optimalWay_Solution = new int[amountOfCities];
+    optimalWay_GreedyAlgorithmSolution = new int[amountOfCities];
 
     bool *visitedCities = new bool[amountOfCities];
     for (int i = 0; i < amountOfCities; i++) {
@@ -178,7 +230,7 @@ void TravellingSalesmanProblem::GreedyAlgorithm() {
     int city = nextCity;
     visitedCities[city] = true;
 
-    optimalWay_Solution[0] = nextCity;
+    optimalWay_GreedyAlgorithmSolution[0] = nextCity;
 
     for (auto j = 0; j < amountOfCities - 1; j++) {
         city = nextCity;
@@ -190,11 +242,11 @@ void TravellingSalesmanProblem::GreedyAlgorithm() {
             }
         }
         visitedCities[nextCity] = true;
-        optimalWay_Solution[j] = nextCity;
+        optimalWay_GreedyAlgorithmSolution[j] = nextCity;
         length += arrayOfMatrixOfCities[city][nextCity];
     }
-    optimalWay_Solution[amountOfCities - 1] = 0;
-    length += arrayOfMatrixOfCities[optimalWay_Solution[amountOfCities - 2]][0];
+    optimalWay_GreedyAlgorithmSolution[amountOfCities - 1] = 0;
+    length += arrayOfMatrixOfCities[optimalWay_GreedyAlgorithmSolution[amountOfCities - 2]][0];
 
     delete[] visitedCities;
 }
@@ -206,86 +258,117 @@ void TravellingSalesmanProblem::BranchAndBoundAlgorithm() {
 
     setGreedyAlgorithm = false;
 
-    std::vector<std::vector<int>> data(static_cast<unsigned long>(amountOfCities + 1),
-                                       std::vector<int>(static_cast<unsigned long>(amountOfCities + 1)));
+    upperBound = INT_MAX;
+    treeOfSubsets.clear();
+    optimalWay_BranchAndBoundSolution.clear();
+
+    std::vector<std::vector<int>> InputMatrixOfCities(static_cast<unsigned long>(amountOfCities + 1),
+                                                      std::vector<int>(static_cast<unsigned long>(amountOfCities + 1)));
 
     for (int i = 0; i < amountOfCities + 1; i++) {
-        data[i][0] = i;
-        data[0][i] = i;
+        InputMatrixOfCities[i][0] = i;
+        InputMatrixOfCities[0][i] = i;
     }
 
     for (auto i = 0; i < amountOfCities; i++) {
         for (auto j = 0; j < amountOfCities; j++) {
-            data[i + 1][j + 1] = arrayOfMatrixOfCities[i][j];
+            InputMatrixOfCities[i + 1][j + 1] = arrayOfMatrixOfCities[i][j];
         }
-        data[i + 1][i + 1] = INT_MAX;
+        InputMatrixOfCities[i + 1][i + 1] = INT_MAX;
     }
 
-    Node normalNode;     // node with regret
-    Node regretNode;     // node without regret
-    regretNode.bar = true;
-    std::pair<int, int> pos;     // var to store the position of a cell in the matrix
-    std::stack<std::pair<int, std::vector<std::vector<int>>> > matrices;    // stack containing the necessary matrix to pursue other branch of the tree
-    std::pair<int, std::vector<std::vector<int>>> matrix;   // matrix associated to a node
-    // Init of the stack with the initial distances matrix
+    Node subsetK1;
+    Node subsetK2;
+    subsetK2.bar = true;
+    std::pair<int, int> positionOfMatrixCell;
+    std::stack<std::pair<int, std::vector<std::vector<int>>>> stackOfMatrices;
+    std::pair<int, std::vector<std::vector<int>>> matrix;
+
     matrix.first = 0;
-    matrix.second = data;
-    matrices.push(matrix);
+    matrix.second = InputMatrixOfCities;
+    stackOfMatrices.push(matrix);
 
-    while (!matrices.empty()) {
-        // Iterate till the stack is empty
-        int id = matrices.top().first;
+    //
+    std::cout<<std::endl;
+    std::cout<<"Macierz wejściowa: "<<std::endl;
+    Print(matrix.second);
 
-        std::vector<std::vector<int>> m(matrices.top().second);
-        matrices.pop();
+    while (!stackOfMatrices.empty()) {
+        int id = stackOfMatrices.top().first;
 
-        // Reduction of the matrix and computation of the minimum sum (raw + col)
-        normalNode.cost = reduceMatrix(m, (int) m.size());
-        if (id == 0) {      // root tree case
-            tree.push_back(normalNode);
+        std::vector<std::vector<int>> actualMatrix(stackOfMatrices.top().second);
+        stackOfMatrices.pop();
+
+        std::cout<<std::endl;
+        std::cout<<"new Po ściągnięciu: "<<std::endl;
+        Print(actualMatrix);
+
+        subsetK1.lowerBound = StandarizationOfMatrix(actualMatrix, (int) actualMatrix.size());
+        if (id == 0) {
+            treeOfSubsets.push_back(subsetK1);
         }
 
-        /* Until it ends up with a 2x2 matrix (3x3 du to the indexes storage)
-         * and until the current node is lower than the reference value */
+        std::cout<<std::endl;
+        std::cout<<"new Po standaryzacji"<<std::endl;
+        std::cout<<"*K1 lower bound: "<< subsetK1.lowerBound <<" upperbound: "<< upperBound << std::endl;
+        Print(actualMatrix);
 
-        while (m.size() > 3 and tree[id].cost < this->reference) {
-            // Compute the node with regret
-            regretNode.cost = tree[id].cost + calculateRegret(m, normalNode.path, pos, (int) m.size());
+        while (actualMatrix.size() > 3 and treeOfSubsets[id].lowerBound < upperBound) {
+            int z = CalculateCostOfResignation(actualMatrix, subsetK1.path, positionOfMatrixCell,
+                                               (int) actualMatrix.size());
+            subsetK2.lowerBound = treeOfSubsets[id].lowerBound + z;
 
-            regretNode.parentNodeKey = id;
-            tree.push_back(regretNode);
+            std::cout<<std::endl;
+            std::cout<<"* Cost of resignation"<< z << std::endl;
+            std::cout<<"*K2 lower bound + koszt rez "<< subsetK2.lowerBound <<" upperbound: "<< upperBound << std::endl;
+            Print(actualMatrix);
+            subsetK2.parent = id;
+            treeOfSubsets.push_back(subsetK2);
 
-            // Storing of the matrix
-            if (regretNode.cost < this->reference) {
-                matrix.first = (int) (tree.size() - 1);
-                matrix.second = m;
-                matrix.second[pos.first][pos.second] = INT_MAX;   // Suppression case i, j pour une potentielle recherche ulterieur
-                matrices.push(matrix);
+            if (subsetK2.lowerBound < upperBound) {
+                std::cout<<std::endl;
+                std::cout<<"* Dodanie K2 (lb<uB)"<<std::endl;
+                Print(actualMatrix);
+
+                matrix.first = (int) (treeOfSubsets.size() - 1);
+                matrix.second = actualMatrix;
+                matrix.second[positionOfMatrixCell.first][positionOfMatrixCell.second] = INT_MAX;
+                stackOfMatrices.push(matrix);
+                std::cout<<std::endl;
+                std::cout<<"* K2 z blokadą do drzewa:"<<std::endl;
+                Print(matrix.second);
             }
 
-            // Deletion raw col
-            removeRow(m, pos.first);
-            removeColumn(m, pos.second);
+            MatrixShortening(actualMatrix, positionOfMatrixCell.first, positionOfMatrixCell.second);
+            std::cout<<std::endl;
+            std::cout<<"* Skrocenie"<<std::endl;
+            Print(actualMatrix);
 
-            // Subtour deletion
-            removeSubTour(m, (int) (tree.size() - 1), normalNode.path, (int) m.size());
+            EliminationOfSubtour(actualMatrix, (int) (treeOfSubsets.size() - 1), subsetK1.path,
+                                 (int) actualMatrix.size());
+            std::cout<<std::endl;
+            std::cout<<"* Eliminacja podcyklu"<<std::endl;
+            Print(actualMatrix);
+            subsetK1.lowerBound =
+                    treeOfSubsets[id].lowerBound + StandarizationOfMatrix(actualMatrix, (int) actualMatrix.size());
+            subsetK1.parent = id;
+            treeOfSubsets.push_back(subsetK1);
+            std::cout<<std::endl;
+            std::cout<<"*K1 standaryzacja"<<std::endl;
+            std::cout<<"*K1 lower bound + stand"<< subsetK1.lowerBound <<" upperbound: "<< upperBound << std::endl;
+            Print(actualMatrix);
 
-            // Compute the node without regret
-            normalNode.cost = tree[id].cost + reduceMatrix(m, (int) m.size());
-            normalNode.parentNodeKey = id;
-            tree.push_back(normalNode);
-
-            id = (int) (tree.size() - 1);
-
-            //cout<<tree[id].cost<<" "<<this->reference<<endl;
+            id = (int) (treeOfSubsets.size() - 1);
         }
-        // Update of the best tour and the reference value
-        if (m.size() == 3) {
-            if (normalNode.cost < this->reference) {
-                addLastPath(m);
-                this->reference = normalNode.cost;
-                this->lastTour = orderPath((int) (tree.size() - 1), 1);
 
+        if (actualMatrix.size() == 3) {
+            if (subsetK1.lowerBound < upperBound) {
+                upperBound = subsetK1.lowerBound;
+                SetOptimalWay(actualMatrix, (int) (treeOfSubsets.size() + 1), 1);
+                std::cout<<std::endl;
+                std::cout<<"* Konec obiegu"<<std::endl;
+                std::cout<<"* lower bound: "<< subsetK1.lowerBound <<" upperbound: "<< upperBound << std::endl;
+                Print(actualMatrix);
             }
         }
     }
@@ -308,52 +391,31 @@ void TravellingSalesmanProblem::PrintSolution() {
         std::cout << "0 - ";
         for (auto i = 0; i < amountOfCities; i++) {
             if (i == amountOfCities - 1) {
-                std::cout << optimalWay_Solution[i] << std::endl;
+                std::cout << optimalWay_GreedyAlgorithmSolution[i] << std::endl;
             } else {
-                std::cout << optimalWay_Solution[i] << " - ";
+                std::cout << optimalWay_GreedyAlgorithmSolution[i] << " - ";
             }
         }
     } else {
-        std::cout << "Length\t= " << this->reference << std::endl;
+        std::cout << "Length\t= " << this->upperBound << std::endl;
         std::cout << "Path\t= ";
-        for (auto i:this->lastTour) {
+        for (auto i:this->optimalWay_BranchAndBoundSolution) {
             std::cout << i - 1 << " - "; //do zmiany (indeks w dół)
         }
         std::cout << "0" << std::endl;
     }
 }
 
-// Add the two last segments of the tour when the matrix is 2x2
-void TravellingSalesmanProblem::addLastPath(std::vector<std::vector<int>> &m) {
-    Node normalNode;
-
-    for (int i = 1; i < 3; i++) {
-        for (int j = 1; j < 3; j++) {
-            if (m[i][j] == 0) {
-                normalNode.path.first = m[i][0];
-                normalNode.path.second = m[0][j];
-                normalNode.cost = tree.back().cost;
-                normalNode.parentNodeKey = tree.size() - 1;
-                tree.push_back(normalNode);
-            }
-        }
-    }
-}
-
-void TravellingSalesmanProblem::removeSubTour(std::vector<std::vector<int>> &activeRoute, int index,
-                                              std::pair<int, int> &path,
-                                              int amountOfCitiesInActualSubset) {
-    int size = amountOfCitiesInActualSubset;
-    std::pair<int, int> pos;
-    int founds = 0;
+void TravellingSalesmanProblem::EliminationOfSubtour(std::vector<std::vector<int>> &activeRoute, int index,
+                                                     std::pair<int, int> &path,
+                                                     int amountOfCitiesInActualSubset) {
     std::vector<std::pair<int, int> > paths;
-
     // Research of all the included path
     while (index != 0) { // Iterate until we are not arrived at the root
-        if (!tree[index].bar) {
-            paths.push_back(tree[index].path);
+        if (!treeOfSubsets[index].bar) {
+            paths.push_back(treeOfSubsets[index].path);
         }
-        index = (int) tree[index].parentNodeKey;
+        index = (int) treeOfSubsets[index].parent;
     }
 
     // Research of the longest subtour
@@ -379,8 +441,10 @@ void TravellingSalesmanProblem::removeSubTour(std::vector<std::vector<int>> &act
         }
     }
 
+    std::pair<int, int> pos;
+    int founds = 0;
     // Research of the segment to delete in the matrix
-    for (int i = 1; i < size; i++) {
+    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
         if (activeRoute[i][0] == subtour.back()) {
             pos.first = i;
             founds++;
@@ -399,15 +463,15 @@ void TravellingSalesmanProblem::removeSubTour(std::vector<std::vector<int>> &act
 }
 
 int
-TravellingSalesmanProblem::calculateRegret(std::vector<std::vector<int>> &m, std::pair<int, int> &path,
-                                           std::pair<int, int> &pos,
-                                           int amountOfCitiesInActualSubset) {
-    int size = amountOfCitiesInActualSubset;
+TravellingSalesmanProblem::CalculateCostOfResignation(std::vector<std::vector<int>> &m, std::pair<int, int> &path,
+                                                      std::pair<int, int> &pos,
+                                                      int amountOfCitiesInActualSubset) {
     int max = -1;
-    for (int i = 1; i < size; i++) {
-        for (int j = 1; j < size; j++) {
+    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
+        for (int j = 1; j < amountOfCitiesInActualSubset; j++) {
             if (m[i][j] == 0) {
-                int val = getMinimumRow(m, i, j, size) + getMinimumColumn(m, j, i, size);
+                int val = GetMinimumRow(m, i, j, amountOfCitiesInActualSubset) +
+                          GetMinimumColumn(m, j, i, amountOfCitiesInActualSubset);
                 if (max < val || max < 0) {
                     max = val;
                     pos.first = i;
@@ -419,14 +483,14 @@ TravellingSalesmanProblem::calculateRegret(std::vector<std::vector<int>> &m, std
             }
         }
     }
+
     return max;
 }
 
-int TravellingSalesmanProblem::getMinimumRow(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
+int TravellingSalesmanProblem::GetMinimumRow(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
                                              int amountOfCitiesInActualSubset) {
-    int nbCol = amountOfCitiesInActualSubset;
     int min = INT_MAX;
-    for (int i = 1; i < nbCol; i++) {
+    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
         int currentValue = cities[row][i];
         if (currentValue != INT_MAX && i != skippedColumn) {
             min = (min < currentValue ? min : currentValue);
@@ -435,11 +499,10 @@ int TravellingSalesmanProblem::getMinimumRow(std::vector<std::vector<int>> &citi
     return min;
 }
 
-int TravellingSalesmanProblem::getMinimumColumn(std::vector<std::vector<int>> &cities, int column, int skippedColumn,
+int TravellingSalesmanProblem::GetMinimumColumn(std::vector<std::vector<int>> &cities, int column, int skippedColumn,
                                                 int amountOfCitiesInActualSubset) {
-    int nbRow = amountOfCitiesInActualSubset;
     int min = INT_MAX;
-    for (int i = 1; i < nbRow; i++) {
+    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
         int currentValue = cities[i][column];
         if (currentValue != INT_MAX && i != skippedColumn) {
             min = (min < currentValue ? min : currentValue);
@@ -449,10 +512,10 @@ int TravellingSalesmanProblem::getMinimumColumn(std::vector<std::vector<int>> &c
 }
 
 int
-TravellingSalesmanProblem::reduceRow(std::vector<std::vector<int>> &cities, int row, int amountOfCitiesInActualSubset) {
-    int nbCol = amountOfCitiesInActualSubset;
-    int min = getMinimumRow(cities, row, -1, nbCol);
-    for (int i = 1; i < nbCol; i++) {
+TravellingSalesmanProblem::SubtractMinimalValuesFromTheRows(std::vector<std::vector<int>> &cities, int row,
+                                                            int amountOfCitiesInActualSubset) {
+    int min = GetMinimumRow(cities, row, -1, amountOfCitiesInActualSubset);
+    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
         if (cities[row][i] != INT_MAX) {
             cities[row][i] = cities[row][i] - min;
         }
@@ -460,12 +523,10 @@ TravellingSalesmanProblem::reduceRow(std::vector<std::vector<int>> &cities, int 
     return min;
 }
 
-int TravellingSalesmanProblem::reduceColumn(std::vector<std::vector<int>> &cities, int col,
-                                            int amountOfCitiesInActualSubset) {
-    int nbRow = amountOfCitiesInActualSubset;
-
-    int min = getMinimumColumn(cities, col, -1, amountOfCitiesInActualSubset);
-    for (int i = 1; i < nbRow; i++) {
+int TravellingSalesmanProblem::SubtractMinimalValuesFromTheColumns(std::vector<std::vector<int>> &cities, int col,
+                                                                   int amountOfCitiesInActualSubset) {
+    int min = GetMinimumColumn(cities, col, -1, amountOfCitiesInActualSubset);
+    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
         if (cities[i][col] != INT_MAX) {
             cities[i][col] = cities[i][col] - min;
         }
@@ -473,34 +534,46 @@ int TravellingSalesmanProblem::reduceColumn(std::vector<std::vector<int>> &citie
     return min;
 }
 
-int TravellingSalesmanProblem::reduceMatrix(std::vector<std::vector<int>> &cities, int amountOfCitiesInActualSubset) {
-    int nbRow = amountOfCitiesInActualSubset;
+int TravellingSalesmanProblem::StandarizationOfMatrix(std::vector<std::vector<int>> &cities,
+                                                      int amountOfCitiesInActualSubset) {
     int minRowTotal = 0;
-    for (int i = 1; i < nbRow; i++) {
-        minRowTotal += reduceRow(cities, i, nbRow);
+    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
+        minRowTotal += SubtractMinimalValuesFromTheRows(cities, i, amountOfCitiesInActualSubset);
     }
 
-    int nbCol = amountOfCitiesInActualSubset;
     int minColTotal = 0;
-    for (int i = 1; i < nbCol; i++) {
-        minColTotal += reduceColumn(cities, i, nbCol);
+    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
+        minColTotal += SubtractMinimalValuesFromTheColumns(cities, i, amountOfCitiesInActualSubset);
     }
 
     return minRowTotal + minColTotal;
 }
 
-std::vector<int> TravellingSalesmanProblem::orderPath(int index, int begin) {
-    std::vector<std::pair<int, int> > path;
-    std::vector<int> tour;
+void TravellingSalesmanProblem::SetOptimalWay(std::vector<std::vector<int>> &m, int index, int begin) {
+    Node normalNode;
 
-    // Retrieval of the path stored in a branch's tree
-    while (index != 0) {    // Iterate until we are not arrived at the root
-        if (!tree[index].bar) {     // If it is a node without regret cost
-            path.push_back(tree[index].path);   // then we add this segment to the path
+    for (int i = 1; i < 3; i++) {
+        for (int j = 1; j < 3; j++) {
+            if (m[i][j] == 0) {
+                normalNode.path.first = m[i][0];
+                normalNode.path.second = m[0][j];
+                normalNode.lowerBound = treeOfSubsets.back().lowerBound;
+                normalNode.parent = treeOfSubsets.size() - 1;
+                treeOfSubsets.push_back(normalNode);
+            }
         }
-        index = (int) tree[index].parentNodeKey;
     }
 
+    std::vector<std::pair<int, int> > path;
+    // Retrieval of the path stored in a branch's tree
+    while (index != 0) {    // Iterate until we are not arrived at the root
+        if (!treeOfSubsets[index].bar) {     // If it is a node without regret cost
+            path.push_back(treeOfSubsets[index].path);   // then we add this segment to the path
+        }
+        index = (int) treeOfSubsets[index].parent;
+    }
+
+    std::vector<int> tour;
     // Research of the path segment containing begin
     int pathSize = (int) path.size();
     for (int i = 0; i < pathSize; i++) {
@@ -521,29 +594,25 @@ std::vector<int> TravellingSalesmanProblem::orderPath(int index, int begin) {
         }
     }
 
-    return tour;
+    optimalWay_BranchAndBoundSolution = tour;
 }
 
-void TravellingSalesmanProblem::checkTourCost(std::vector<std::vector<int>> &cities) {
-    int cost = 0;
-    int size = (int) this->lastTour.size();
-    for (int i = 0; i < size - 1; i++) {
-        cost += this->arrayOfMatrixOfCities[this->lastTour[i]][this->lastTour[i + 1]];
-    }
-    cost += this->arrayOfMatrixOfCities[this->lastTour.back()][this->lastTour.front()];
-    std::cout << "Cost check " << cost << " ";
-}
-
-void TravellingSalesmanProblem::removeRow(std::vector<std::vector<int>> &data, int row) {
-    typename std::vector<std::vector<int> >::iterator it = data.begin() + row;
+void TravellingSalesmanProblem::MatrixShortening(std::vector<std::vector<int>> &data, int row, int col) {
+    std::vector<std::vector<int> >::iterator it = data.begin() + row;
     data.erase(it);
-}
 
-void TravellingSalesmanProblem::removeColumn(std::vector<std::vector<int>> &data, int col) {
     for (int row = 0; row < data.size(); row++) {
-        typename std::vector<int>::iterator it = data[row].begin() + col;
+        std::vector<int>::iterator it = data[row].begin() + col;
         data[row].erase(it);
     }
+}
+
+int TravellingSalesmanProblem::GetTourLength(std::string whichAlgorithm) {
+    if (whichAlgorithm == "greedy")
+        return length;
+    else if ("branchandbound")
+        return upperBound;
+    return 0;
 }
 
 

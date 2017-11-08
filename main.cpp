@@ -61,10 +61,16 @@ void menu_travelling_salesman_problem() //Obsługa problemu komiwojażera.
 
             case 4: //Algorytm 1. - zachłanny.
                 try {
+                    TimeMeasurement t;
+                    t.TimeStart();
                     s.GreedyAlgorithm();
+                    t.TimeStop();
                     s.PrintCitiesForTheTravellingSalesman(false);
                     std::cout << std::endl;
                     s.PrintSolution();
+                    std::cout.setf(std::ios::fixed, std::ios::floatfield);
+                    std::cout.setf(std::ios::showpoint);
+                    std::cout << "Time\t= " << t.GetTimeInSeconds() << " s" << std::endl << std::endl;
                 }
                 catch (std::logic_error &e) {
                     std::cout << e.what() << std::endl;
@@ -73,14 +79,24 @@ void menu_travelling_salesman_problem() //Obsługa problemu komiwojażera.
 
             case 5: //Algorytm 2. - metoda podziału i ograniczeń.
                 try {
+                    TimeMeasurement t;
+                    t.TimeStart();
                     s.BranchAndBoundAlgorithm();
+                    t.TimeStop();
                     s.PrintCitiesForTheTravellingSalesman(false);
                     std::cout << std::endl;
                     s.PrintSolution();
+                    std::cout.setf(std::ios::fixed, std::ios::floatfield);
+                    std::cout.setf(std::ios::showpoint);
+                    std::cout << "Time\t= " << t.GetTimeInSeconds() << " s" << std::endl << std::endl;
                 }
                 catch (std::logic_error &e) {
                     std::cout << e.what() << std::endl;
                 }
+                break;
+
+            case 6: //Algorytm 2. - metoda podziału i ograniczeń.
+                s.ReadCitiesFromFile("macierz.txt");
                 break;
 
             default:
@@ -101,6 +117,7 @@ void menu_tests() //Obsługa testów czasowych.
         std::cout << "*** Testy czasowe ***" << std::endl;
         std::cout << "1. Testy czasowe dla algorytmu zachłannego problemu komiwojażera." << std::endl;
         std::cout << "2. Testy czasowe dla algorytmu podziału i ograniczeń problemu komiwojażera." << std::endl;
+        std::cout << "0. Powrót do menu." << std::endl;
         std::cout << "Podaj opcje: ";
         std::cin >> option;
         std::cout << std::endl;
@@ -108,17 +125,13 @@ void menu_tests() //Obsługa testów czasowych.
             case 1: //Testy czasowe dla algorytmu zachłannego problemu komiwojażera.
                 std::cout << "Podaj ilość instancji każdego zestawu danych w celu uśrednienia wyniku: ";
                 std::cin >> numberOfRepetitions;
-                std::cout << "Podaj maksymalną wartość odległości pomiędzy miastami: ";
-                std::cin >> maxDistanceBetweenCity;
-                test.TravellingSalesmanProblem_Test_Greedy(numberOfRepetitions, maxDistanceBetweenCity);
+                test.TravellingSalesmanProblem_Test_Greedy(numberOfRepetitions);
                 break;
 
             case 2: //Testy czasowe dla algorytmu podziału i ograniczeń problemu komiwojażera.
                 std::cout << "Podaj ilość instancji każdego zestawu danych w celu uśrednienia wyniku: ";
                 std::cin >> numberOfRepetitions;
-                std::cout << "Podaj maksymalną wartość odległości pomiędzy miastami: ";
-                std::cin >> maxDistanceBetweenCity;
-                test.TravellingSalesmanProblem_Test_BranchAndBound(numberOfRepetitions, maxDistanceBetweenCity);
+                test.TravellingSalesmanProblem_Test_BranchAndBound(numberOfRepetitions);
                 break;
 
             default:

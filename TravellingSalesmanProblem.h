@@ -19,10 +19,10 @@
 #include <map>
 
 struct Node {
-    int cost;                     // path cost till this node
+    int lowerBound;                     // path cost till this node
     std::pair<int, int> path;        // path segment (example : 0 1)
     bool bar = false;           // included or excluded path segment
-    long parentNodeKey = -1;     // parent id node (in tree)
+    long parent = -1;     // parent id node (in tree)
 };
 
 class TravellingSalesmanProblem {
@@ -30,22 +30,50 @@ class TravellingSalesmanProblem {
 private:
     int amountOfCities;
     int **arrayOfMatrixOfCities;
-    int reference = std::numeric_limits<int>::max();
-    int *optimalWay_Solution;
+    int *optimalWay_GreedyAlgorithmSolution;
     int length;
     bool setGreedyAlgorithm;
+
+    int upperBound;
     std::string fileName;
     std::string graphType;
     bool randomGeneratorData;
-    std::deque<Node> tree;
-    std::vector<int> lastTour;
+    std::deque<Node> treeOfSubsets;
+    std::vector<int> optimalWay_BranchAndBoundSolution;
 
-    std::vector<int> orderPath(int index, int begin);
+    int StandarizationOfMatrix(std::vector<std::vector<int>> &cities, int amountOfCitiesInActualSubset);
+
+    int GetMinimumRow(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
+                      int amountOfCitiesInActualSubset);
+
+    int GetMinimumColumn(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
+                         int amountOfCitiesInActualSubset);
+
+    int SubtractMinimalValuesFromTheRows(std::vector<std::vector<int>> &cites, int row,
+                                         int amountOfCitiesInActualSubset);
+
+    int SubtractMinimalValuesFromTheColumns(std::vector<std::vector<int>> &cities, int col,
+                                            int amountOfCitiesInActualSubset);
+
+    int CalculateCostOfResignation(std::vector<std::vector<int>> &m, std::pair<int, int> &path,
+                                   std::pair<int, int> &pos,
+                                   int amountOfCitiesInActualSubset);
+
+    void MatrixShortening(std::vector<std::vector<int>> &matrix, int row, int col);
+
+    void EliminationOfSubtour(std::vector<std::vector<int>> &activeRoute, int index, std::pair<int, int> &path,
+                              int amountOfCitiesInActualSubset);
+
+    void AddLastPath(std::vector<std::vector<int>> &m);
+
+    void SetOptimalWay(std::vector<std::vector<int>> &m, int index, int begin);
 
 public:
     TravellingSalesmanProblem();
 
     ~TravellingSalesmanProblem();
+
+    void ReadCitiesFromFile(std::string path);
 
     void DeleteTravellingSalesman();
 
@@ -58,35 +86,11 @@ public:
 
     void GreedyAlgorithm();
 
-    void PrintSolution();
-
-    void removeColumn(std::vector<std::vector<int>> &matrix, int column);
-
-    void removeRow(std::vector<std::vector<int>> &matrix, int row);
-
     void BranchAndBoundAlgorithm();
 
-    int calculateRegret(std::vector<std::vector<int>> &m, std::pair<int, int> &path, std::pair<int, int> &pos,
-                        int amountOfCitiesInActualSubset);
+    void PrintSolution();
 
-    int
-    getMinimumRow(std::vector<std::vector<int>> &cities, int row, int skippedColumn, int amountOfCitiesInActualSubset);
-
-    int getMinimumColumn(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
-                         int amountOfCitiesInActualSubset);
-
-    int reduceRow(std::vector<std::vector<int>> &cites, int row, int amountOfCitiesInActualSubset);
-
-    int reduceColumn(std::vector<std::vector<int>> &cities, int col, int amountOfCitiesInActualSubset);
-
-    int reduceMatrix(std::vector<std::vector<int>> &cities, int amountOfCitiesInActualSubset);
-
-    void removeSubTour(std::vector<std::vector<int>> &activeRoute, int index, std::pair<int, int> &path,
-                       int amountOfCitiesInActualSubset);
-
-    void addLastPath(std::vector<std::vector<int>> &m);
-
-    void checkTourCost(std::vector<std::vector<int>> &cities);
+    int GetTourLength(std::string whichAlgorithm);
 };
 
 

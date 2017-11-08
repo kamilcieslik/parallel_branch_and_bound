@@ -12,9 +12,9 @@ public:
     
     ~AlgorithmTest();
     
-    void TravellingSalesmanProblem_Test_Greedy(int numberOfRepetitions, int maxDistanceBetweenCity);
+    void TravellingSalesmanProblem_Test_Greedy(int numberOfRepetitions);
     
-    void TravellingSalesmanProblem_Test_BranchAndBound(int numberOfRepetitions, int maxDistanceBetweenCity);
+    void TravellingSalesmanProblem_Test_BranchAndBound(int numberOfRepetitions);
 };
 
 
