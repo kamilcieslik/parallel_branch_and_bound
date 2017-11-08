@@ -9,8 +9,8 @@ Subset::Subset() : isK1(true), parent(INT_MIN) {
 }
 
 TravellingSalesmanProblem::TravellingSalesmanProblem() : amountOfCities(0), arrayOfMatrixOfCities(nullptr),
-                                                         optimalWay_GreedyAlgorithmSolution(nullptr),
-                                                         upperBound(INT_MAX) {
+                                                         optimalWay_BruteForceAlgorithmSolution(nullptr),
+                                                         upperBound(INT_MAX), allPossiblePermutations(nullptr) {
 }
 
 TravellingSalesmanProblem::~TravellingSalesmanProblem() {
@@ -24,40 +24,14 @@ void TravellingSalesmanProblem::DeleteTravellingSalesman() {
     delete[] arrayOfMatrixOfCities;
     arrayOfMatrixOfCities = nullptr;
 
-    if (optimalWay_GreedyAlgorithmSolution != nullptr) {
-        delete[] optimalWay_GreedyAlgorithmSolution;
-        optimalWay_GreedyAlgorithmSolution = nullptr;
+    if (optimalWay_BruteForceAlgorithmSolution != nullptr) {
+        delete[] optimalWay_BruteForceAlgorithmSolution;
+        optimalWay_BruteForceAlgorithmSolution = nullptr;
     }
-}
 
-void TravellingSalesmanProblem::ReadCitiesFromFile(std::string path) {
-    if (arrayOfMatrixOfCities != nullptr)
-        DeleteTravellingSalesman();
-
-    std::fstream file(path, std::ios::in);
-    if (file.is_open()) {
-        file >> amountOfCities;
-
-        arrayOfMatrixOfCities = new int *[amountOfCities];
-        for (auto i = 0; i < amountOfCities; i++) {
-            arrayOfMatrixOfCities[i] = new int[amountOfCities];
-        }
-        int *securityMatrixForReadingPerLine = new int[amountOfCities];
-
-        for (auto i = 0; i < amountOfCities; i++) {
-            for (auto j = 0; j < amountOfCities; j++) {
-                if (file.fail()) throw std::logic_error("Błąd odczytu danych w pliku.");
-                file >> securityMatrixForReadingPerLine[j];
-            }
-
-            for (auto j = 0; j < amountOfCities; j++) {
-                arrayOfMatrixOfCities[i][j] = securityMatrixForReadingPerLine[j];
-            }
-        }
-        delete[] securityMatrixForReadingPerLine;
-        file.close();
-    } else {
-        std::cout << "Błąd otwarcia pliku.\n";
+    if (allPossiblePermutations != nullptr) {
+        delete[] allPossiblePermutations;
+        allPossiblePermutations = nullptr;
     }
 }
 
@@ -84,6 +58,40 @@ void TravellingSalesmanProblem::LoadArrayOfMatrixOfCities(long long int **_citie
 
     fileName = _fileName;
     graphType = _graphType;
+
+    std::cout << "Wczytywanie zakończone pomyślnie." << std::endl;
+}
+
+void TravellingSalesmanProblem::ReadCitiesFromNormalFile(std::string path) {
+    if (arrayOfMatrixOfCities != nullptr)
+        DeleteTravellingSalesman();
+
+    std::fstream file(path, std::ios::in);
+    if (file.is_open()) {
+        file >> amountOfCities;
+
+        arrayOfMatrixOfCities = new int *[amountOfCities];
+        for (auto i = 0; i < amountOfCities; i++) {
+            arrayOfMatrixOfCities[i] = new int[amountOfCities];
+        }
+        int *securityMatrixForReadingPerLine = new int[amountOfCities];
+
+        for (auto i = 0; i < amountOfCities; i++) {
+            for (auto j = 0; j < amountOfCities; j++) {
+                if (file.fail()) throw std::logic_error("Błąd odczytu danych w pliku.");
+                file >> securityMatrixForReadingPerLine[j];
+            }
+
+            for (auto j = 0; j < amountOfCities; j++) {
+                arrayOfMatrixOfCities[i][j] = securityMatrixForReadingPerLine[j];
+            }
+        }
+        delete[] securityMatrixForReadingPerLine;
+        file.close();
+        std::cout << "Wczytywanie zakończone pomyślnie." << std::endl;
+    } else {
+        std::cout << "Błąd otwarcia pliku." << std::endl;
+    }
 }
 
 void TravellingSalesmanProblem::GenerateRandomCities(int amountOfCities, int maxDistanceBetweenCity) {
@@ -187,50 +195,57 @@ void TravellingSalesmanProblem::PrintCitiesForTheTravellingSalesman(bool printIn
     std::cout << "Number of cities:\t" << amountOfCities << std::endl;
 }
 
+// --------------------------------------------------------------------------------
+// Funkcja rekurencyjna przeszukująca permutacje na potrzeby algorytmu zupełnego.
+// --------------------------------------------------------------------------------
+void TravellingSalesmanProblem::CalculateTheMostOptimalPermutation(int recursive_param) {
+    if (recursive_param == amountOfCities - 1) {
+        int lengthInThisPermutation = 0;
+        for (auto i = 0; i < amountOfCities - 1; i++) {
+            lengthInThisPermutation += arrayOfMatrixOfCities[allPossiblePermutations[i]][allPossiblePermutations[i +
+                                                                                                                 1]];
+        }
+        lengthInThisPermutation += arrayOfMatrixOfCities[allPossiblePermutations[amountOfCities -
+                                                                                 1]][allPossiblePermutations[0]];
+        if (lengthInThisPermutation < length) {
+            length = lengthInThisPermutation;
+            for (auto i = 0; i < amountOfCities; i++) {
+                optimalWay_BruteForceAlgorithmSolution[i] = allPossiblePermutations[i];
+            }
+            optimalWay_BruteForceAlgorithmSolution[amountOfCities] = allPossiblePermutations[0];
+        }
+    } else {
+        for (auto i = recursive_param; i < amountOfCities; i++) {
+            std::swap(allPossiblePermutations[recursive_param], allPossiblePermutations[i]);
+            CalculateTheMostOptimalPermutation(recursive_param + 1);
+            std::swap(allPossiblePermutations[recursive_param], allPossiblePermutations[i]);
+        }
+    }
+}
+
 // -------------------------------------------------------------------
-// Algorytm zachłanny dla problemu komiwojażera.
+// Algorytm zupełny dla problemu komiwojażera.
 // -------------------------------------------------------------------
-void TravellingSalesmanProblem::GreedyAlgorithm() {
+void TravellingSalesmanProblem::BruteForceAlgorithm() {
     if (arrayOfMatrixOfCities == nullptr)
         throw std::logic_error("Brak miast do przeprowadzenia algorytmu problemu komiwojażera.");
 
-    if (optimalWay_GreedyAlgorithmSolution != nullptr)
-        delete[] optimalWay_GreedyAlgorithmSolution;
+    if (optimalWay_BruteForceAlgorithmSolution != nullptr)
+        delete[] optimalWay_BruteForceAlgorithmSolution;
 
-    setGreedyAlgorithm = true;
-    optimalWay_GreedyAlgorithmSolution = new int[amountOfCities];
+    setBruteForceAlgorithm = true;
+    optimalWay_BruteForceAlgorithmSolution = new int[amountOfCities + 1];
 
-    bool *visitedCities = new bool[amountOfCities];
+    allPossiblePermutations = new int[amountOfCities];
     for (int i = 0; i < amountOfCities; i++) {
-        visitedCities[i] = false;
+        allPossiblePermutations[i] = i;
     }
 
-    length = 0;
-    int currentMinLength;
+    length = INT_MAX;
+    CalculateTheMostOptimalPermutation(0);
 
-    int nextCity = 0;
-    int city = nextCity;
-    visitedCities[city] = true;
-
-    optimalWay_GreedyAlgorithmSolution[0] = nextCity;
-
-    for (auto j = 0; j < amountOfCities - 1; j++) {
-        city = nextCity;
-        currentMinLength = INT_MAX;
-        for (auto i = 0; i < amountOfCities; i++) {
-            if (arrayOfMatrixOfCities[city][i] < currentMinLength && !visitedCities[i]) {
-                currentMinLength = arrayOfMatrixOfCities[city][i];
-                nextCity = i;
-            }
-        }
-        visitedCities[nextCity] = true;
-        optimalWay_GreedyAlgorithmSolution[j] = nextCity;
-        length += arrayOfMatrixOfCities[city][nextCity];
-    }
-    optimalWay_GreedyAlgorithmSolution[amountOfCities - 1] = 0;
-    length += arrayOfMatrixOfCities[optimalWay_GreedyAlgorithmSolution[amountOfCities - 2]][0];
-
-    delete[] visitedCities;
+    delete[] allPossiblePermutations;
+    allPossiblePermutations = nullptr;
 }
 
 // -------------------------------------------------------------------
@@ -240,7 +255,7 @@ void TravellingSalesmanProblem::BranchAndBoundAlgorithm() {
     if (arrayOfMatrixOfCities == nullptr)
         throw std::logic_error("Brak miast do przeprowadzenia algorytmu problemu komiwojażera.");
 
-    setGreedyAlgorithm = false;
+    setBruteForceAlgorithm = false;
 
     upperBound = INT_MAX;
     treeOfSubsets.clear();
@@ -305,96 +320,64 @@ void TravellingSalesmanProblem::BranchAndBoundAlgorithm() {
     }
 }
 
-
-void TravellingSalesmanProblem::PrintSolution() {
-    std::cout << "\e[1mSolution\e[0m" << std::endl;
-    if (setGreedyAlgorithm) {
-        std::cout << "\e[1mGreedy Algorithm\e[0m" << std::endl;
-    } else {
-        std::cout << "\e[1mBranch and Bound Algorithm\e[0m" << std::endl;
+void TravellingSalesmanProblem::PrepareMatrix(std::vector<std::vector<int>> &matrix) {
+    for (int i = 0; i < matrix.size(); i++) {
+        matrix[i][0] = i;
+        matrix[0][i] = i;
     }
 
-    std::cout << "-------------------" << std::endl;
-
-    if (setGreedyAlgorithm) {
-        std::cout << "Length\t= " << length << std::endl;
-        std::cout << "Path\t= ";
-        std::cout << "0 - ";
-        for (auto i = 0; i < amountOfCities; i++) {
-            if (i == amountOfCities - 1) {
-                std::cout << optimalWay_GreedyAlgorithmSolution[i] << std::endl;
-            } else {
-                std::cout << optimalWay_GreedyAlgorithmSolution[i] << " - ";
-            }
+    for (auto i = 0; i < matrix.size() - 1; i++) {
+        for (auto j = 0; j < matrix.size() - 1; j++) {
+            matrix[i + 1][j + 1] = arrayOfMatrixOfCities[i][j];
         }
-    } else {
-        std::cout << "Length\t= " << this->upperBound << std::endl;
-        std::cout << "Path\t= ";
-        for (auto i:this->optimalWay_BranchAndBoundSolution) {
-            std::cout << i - 1 << " - ";
-        }
-        std::cout << "0" << std::endl;
+        matrix[i + 1][i + 1] = INT_MAX;
     }
 }
 
-void TravellingSalesmanProblem::PrepareMatrix(std::vector<std::vector<int>> &m) {
-    for (int i = 0; i < m.size(); i++) {
-        m[i][0] = i;
-        m[0][i] = i;
-    }
-
-    for (auto i = 0; i < m.size() - 1; i++) {
-        for (auto j = 0; j < m.size() - 1; j++) {
-            m[i + 1][j + 1] = arrayOfMatrixOfCities[i][j];
-        }
-        m[i + 1][i + 1] = INT_MAX;
-    }
-}
-
-void TravellingSalesmanProblem::EliminationOfSubtour(std::vector<std::vector<int>> &activeRoute, int index,
-                                                     std::pair<int, int> &path) {
-    std::vector<std::pair<int, int> > paths;
+void TravellingSalesmanProblem::EliminationOfSubtour(std::vector<std::vector<int>> &activeMatrix, int index,
+                                                     std::pair<int, int> &route) {
+    std::vector<std::pair<int, int> > _routes;
     // Research of all the included path
     while (index != 0) { // Iterate until we are not arrived at the root
         if (treeOfSubsets[index].isK1) {
-            paths.push_back(treeOfSubsets[index].route);
+            _routes.push_back(treeOfSubsets[index].route);
         }
         index = (int) treeOfSubsets[index].parent;
     }
 
     // Research of the longest subtour
-    std::deque<int> subtour = {path.first, path.second};
+    std::deque<int> subtour = {route.first, route.second};
     bool found = true;
     while (found) {
         found = false;
-        for (const std::pair<int, int> &segment : paths) {
+        for (const std::pair<int, int> &_route : _routes) {
             // Check that "segment" go ahead in a subtour
-            if (segment.second == subtour.front()) {
-                subtour.push_front(segment.second);
-                subtour.push_front(segment.first);
+            if (_route.second == subtour.front()) {
+                subtour.push_front(_route.second);
+                subtour.push_front(_route.first);
                 found = true;
                 break;
             }
                 // Check that "segment" go behind in a subtour
-            else if (segment.first == subtour.back()) {
-                subtour.push_back(segment.first);
-                subtour.push_back(segment.second);
+            else if (_route.first == subtour.back()) {
+                subtour.push_back(_route.first);
+                subtour.push_back(_route.second);
                 found = true;
                 break;
             }
         }
     }
 
-    std::pair<int, int> pos;
+    std::pair<int, int> positionOfMatrixCell;
     int founds = 0;
     // Research of the segment to delete in the matrix
-    for (int i = 1; i < activeRoute.size(); i++) {
-        if (activeRoute[i][0] == subtour.back()) {
-            pos.first = i;
+    for (int i = 1; i < activeMatrix.size(); i++) {
+        if (activeMatrix[i][0] == subtour.back()) {
+            positionOfMatrixCell.first = i;
             founds++;
         }
-        if (activeRoute[0][i] == subtour.front()) {
-            pos.second = i;
+        if (activeMatrix[0][i] == subtour.front()) {
+            positionOfMatrixCell.second = i;
             founds++;
         }
     }
@@ -402,26 +385,27 @@ void TravellingSalesmanProblem::EliminationOfSubtour(std::vector<std::vector<int
     // If the segment to delete has been found, then delete it by giving him an infinite cost
     if (founds == 2) {
         //m.setValue(pos.first, pos.second, this->INT_MAX);
-        activeRoute[pos.first][pos.second] = INT_MAX;
+        activeMatrix[positionOfMatrixCell.first][positionOfMatrixCell.second] = INT_MAX;
     }
 }
 
 int
-TravellingSalesmanProblem::CalculateCostOfResignation(std::vector<std::vector<int>> &m, std::pair<int, int> &path,
-                                                      std::pair<int, int> &pos) {
+TravellingSalesmanProblem::CalculateCostOfResignation(std::vector<std::vector<int>> &activeMatrix,
+                                                      std::pair<int, int> &route,
+                                                      std::pair<int, int> &positionOfMatrixCell) {
     int max = INT_MIN;
-    for (int i = 1; i < m.size(); i++) {
-        for (int j = 1; j < m.size(); j++) {
-            if (m[i][j] == 0) {
-                int val = GetMinimumRow(m, i, j, m.size()) +
-                          GetMinimumColumn(m, j, i, m.size());
+    for (int i = 1; i < activeMatrix.size(); i++) {
+        for (int j = 1; j < activeMatrix.size(); j++) {
+            if (activeMatrix[i][j] == 0) {
+                int val = GetMinimumRow(activeMatrix, i, j) +
+                          GetMinimumColumn(activeMatrix, j, i);
                 if (max < val || max < 0) {
                     max = val;
-                    pos.first = i;
-                    pos.second = j;
+                    positionOfMatrixCell.first = i;
+                    positionOfMatrixCell.second = j;
 
-                    path.first = m[i][0];
-                    path.second = m[0][j];
+                    route.first = activeMatrix[i][0];
+                    route.second = activeMatrix[0][j];
                 }
             }
         }
@@ -430,131 +414,155 @@ TravellingSalesmanProblem::CalculateCostOfResignation(std::vector<std::vector<in
     return max;
 }
 
-int TravellingSalesmanProblem::GetMinimumRow(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
-                                             int amountOfCitiesInActualSubset) {
+int TravellingSalesmanProblem::GetMinimumRow(std::vector<std::vector<int>> &activeMatrix, int row, int skippedColumn) {
     int min = INT_MAX;
-    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
-        int currentValue = cities[row][i];
+    for (int i = 1; i < activeMatrix.size(); i++) {
+        int currentValue = activeMatrix[row][i];
         if (currentValue != INT_MAX && i != skippedColumn) {
             min = (min < currentValue ? min : currentValue);
         }
     }
+
     return min;
 }
 
-int TravellingSalesmanProblem::GetMinimumColumn(std::vector<std::vector<int>> &cities, int column, int skippedColumn,
-                                                int amountOfCitiesInActualSubset) {
+int TravellingSalesmanProblem::GetMinimumColumn(std::vector<std::vector<int>> &activeMatrix, int column,
+                                                int skippedColumn) {
     int min = INT_MAX;
-    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
-        int currentValue = cities[i][column];
+    for (int i = 1; i < activeMatrix.size(); i++) {
+        int currentValue = activeMatrix[i][column];
         if (currentValue != INT_MAX && i != skippedColumn) {
             min = (min < currentValue ? min : currentValue);
         }
     }
+
     return min;
 }
 
 int
-TravellingSalesmanProblem::SubtractMinimalValuesFromTheRows(std::vector<std::vector<int>> &cities, int row,
-                                                            int amountOfCitiesInActualSubset) {
-    int min = GetMinimumRow(cities, row, -1, amountOfCitiesInActualSubset);
-    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
-        if (cities[row][i] != INT_MAX) {
-            cities[row][i] = cities[row][i] - min;
+TravellingSalesmanProblem::SubtractMinimalValuesFromTheRows(std::vector<std::vector<int>> &activeMatrix, int row) {
+    int min = GetMinimumRow(activeMatrix, row);
+    for (int i = 1; i < activeMatrix.size(); i++) {
+        if (activeMatrix[row][i] != INT_MAX) {
+            activeMatrix[row][i] = activeMatrix[row][i] - min;
         }
     }
+
     return min;
 }
 
-int TravellingSalesmanProblem::SubtractMinimalValuesFromTheColumns(std::vector<std::vector<int>> &cities, int col,
-                                                                   int amountOfCitiesInActualSubset) {
-    int min = GetMinimumColumn(cities, col, -1, amountOfCitiesInActualSubset);
-    for (int i = 1; i < amountOfCitiesInActualSubset; i++) {
-        if (cities[i][col] != INT_MAX) {
-            cities[i][col] = cities[i][col] - min;
+int
+TravellingSalesmanProblem::SubtractMinimalValuesFromTheColumns(std::vector<std::vector<int>> &activeMatrix, int col) {
+    int min = GetMinimumColumn(activeMatrix, col);
+    for (int i = 1; i < activeMatrix.size(); i++) {
+        if (activeMatrix[i][col] != INT_MAX) {
+            activeMatrix[i][col] = activeMatrix[i][col] - min;
         }
     }
+
     return min;
 }
 
-int TravellingSalesmanProblem::StandarizationOfMatrix(std::vector<std::vector<int>> &cities) {
+int TravellingSalesmanProblem::StandarizationOfMatrix(std::vector<std::vector<int>> &activeMatrix) {
     int minRowTotal = 0;
-    for (int i = 1; i < cities.size(); i++) {
-        minRowTotal += SubtractMinimalValuesFromTheRows(cities, i, cities.size());
+    for (int i = 1; i < activeMatrix.size(); i++) {
+        minRowTotal += SubtractMinimalValuesFromTheRows(activeMatrix, i);
     }
 
     int minColTotal = 0;
-    for (int i = 1; i < cities.size(); i++) {
-        minColTotal += SubtractMinimalValuesFromTheColumns(cities, i, cities.size());
+    for (int i = 1; i < activeMatrix.size(); i++) {
+        minColTotal += SubtractMinimalValuesFromTheColumns(activeMatrix, i);
     }
 
     return minRowTotal + minColTotal;
 }
 
-void TravellingSalesmanProblem::SetOptimalWay(std::vector<std::vector<int>> &m, int index) {
+void TravellingSalesmanProblem::SetOptimalWay(std::vector<std::vector<int>> &activeMatrix, int index) {
     Subset K1;
 
     for (int i = 1; i < 3; i++) {
         for (int j = 1; j < 3; j++) {
-            if (m[i][j] == 0) {
+            if (activeMatrix[i][j] == 0) {
                 K1.lowerBound = treeOfSubsets.back().lowerBound;
                 K1.parent = treeOfSubsets.size() - 1;
-                K1.route.first = m[i][0];
-                K1.route.second = m[0][j];
+                K1.route.first = activeMatrix[i][0];
+                K1.route.second = activeMatrix[0][j];
                 treeOfSubsets.push_back(K1);
             }
         }
     }
 
     std::vector<std::pair<int, int> > route;
-    // Retrieval of the path stored in a branch's tree
-    while (index != 0) {    // Iterate until we are not arrived at the root
-        if (treeOfSubsets[index].isK1) {     // If it is a node without regret cost
-            route.push_back(treeOfSubsets[index].route);   // then we add this segment to the path
+    while (index != 0) {
+        if (treeOfSubsets[index].isK1) {
+            route.push_back(treeOfSubsets[index].route);
         }
         index = (int) treeOfSubsets[index].parent;
     }
 
-    std::vector<int> tour;
-    // Research of the path segment containing begin
+    std::vector<int> optimalWay;
     int pathSize = (int) route.size();
-    for (int i = 0; i < pathSize; i++) {
+    for (int i = 0; i < route.size(); i++) {
         if (route[i].first == 1) {
-            tour.push_back(route[i].first);
-            tour.push_back(route[i].second);
+            optimalWay.push_back(route[i].first);
+            optimalWay.push_back(route[i].second);
             route.erase(route.begin() + i);
         }
     }
 
-    // Ordering of the rest of the tour
-    while (tour.size() != pathSize) {
+    while (optimalWay.size() != pathSize) {
         for (int i = 0; i < route.size(); i++) {
-            if (tour.back() == route[i].first) {
-                tour.push_back(route[i].second);
+            if (optimalWay.back() == route[i].first) {
+                optimalWay.push_back(route[i].second);
                 route.erase(route.begin() + i);
             }
         }
     }
 
-    optimalWay_BranchAndBoundSolution = tour;
+    optimalWay_BranchAndBoundSolution = optimalWay;
 }
 
-void TravellingSalesmanProblem::MatrixShortening(std::vector<std::vector<int>> &data, int row, int col) {
-    auto it_row = data.begin() + row;
-    data.erase(it_row);
+void TravellingSalesmanProblem::MatrixShortening(std::vector<std::vector<int>> &activeMatrix, int row, int col) {
+    auto it_row = activeMatrix.begin() + row;
+    activeMatrix.erase(it_row);
 
-    for (int i = 0; i < data.size(); i++) {
-        auto it_col = data[i].begin() + col;
-        data[i].erase(it_col);
+    for (int i = 0; i < activeMatrix.size(); i++) {
+        auto it_col = activeMatrix[i].begin() + col;
+        activeMatrix[i].erase(it_col);
+    }
+}
+
+void TravellingSalesmanProblem::PrintSolution() {
+    std::cout << "\e[1mSolution\e[0m" << std::endl;
+    if (setBruteForceAlgorithm) {
+        std::cout << "\e[1mFull Search Algorithm\e[0m" << std::endl;
+    } else {
+        std::cout << "\e[1mBranch and Bound Algorithm\e[0m" << std::endl;
+    }
+
+    std::cout << "-------------------" << std::endl;
+
+    if (setBruteForceAlgorithm) {
+        std::cout << "Length\t= " << length << std::endl;
+        std::cout << "Path\t= ";
+        for (auto i = 0; i < amountOfCities; i++) {
+            std::cout << optimalWay_BruteForceAlgorithmSolution[i] << " - ";
+        }
+        std::cout << "0" << std::endl;
+    } else {
+        std::cout << "Length\t= " << this->upperBound << std::endl;
+        std::cout << "Path\t= ";
+        for (auto i = 0; i < amountOfCities; i++) {
+            std::cout << optimalWay_BranchAndBoundSolution[i] - 1 << " - ";
+        }
+        std::cout << "0" << std::endl;
     }
 }
 
 int TravellingSalesmanProblem::GetTourLength(std::string whichAlgorithm) {
-    if (whichAlgorithm == "greedy")
+    if (whichAlgorithm == "bruteforce")
         return length;
     else if ("branchandbound")
         return upperBound;
     return 0;
 }
-
-

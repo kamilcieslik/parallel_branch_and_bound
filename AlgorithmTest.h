@@ -9,11 +9,11 @@ class AlgorithmTest {
 
 public:
     AlgorithmTest();
-    
+
     ~AlgorithmTest();
-    
-    void TravellingSalesmanProblem_Test_Greedy(int numberOfRepetitions);
-    
+
+    void TravellingSalesmanProblem_Test_BruteForce(int numberOfRepetitions);
+
     void TravellingSalesmanProblem_Test_BranchAndBound(int numberOfRepetitions);
 };
 

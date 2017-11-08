@@ -10,7 +10,6 @@
 
 class TSPLIB_Parser {
 private:
-    const char delimiter = ':';
     std::string fileName;
     std::string type;
     std::string edgeWeightType;
@@ -30,7 +29,7 @@ public:
 
     bool checkParameter(std::string, std::string);
 
-    std::string trim(std::string);
+    std::string RemovePotentialSpacesBeforeAndAfter(std::string);
 
     bool readProblem(std::ifstream &);
 

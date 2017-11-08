@@ -38,11 +38,12 @@ bool TSPLIB_Parser::readProblem(std::ifstream &inputFile) {
         if (line == "EOF" || line == "DISPLAY_DATA_SECTION") {
             break;
         }
-        if (line.find(delimiter) != std::string::npos) {
-            std::string parameter = line.substr(0, line.find(delimiter));
-            std::string value = line.substr(line.find(delimiter) + 1, line.npos);
+        if (line.find(':') != std::string::npos) {
+            std::string parameter = line.substr(0, line.find(':'));
+            std::string value = line.substr(line.find(':') + 1, line.npos);
 
-            if (!checkParameter(trim(parameter), trim(value))) {
+            if (!checkParameter(RemovePotentialSpacesBeforeAndAfter(parameter),
+                                RemovePotentialSpacesBeforeAndAfter(value))) {
                 return false;
             }
         }
@@ -84,7 +85,6 @@ bool TSPLIB_Parser::checkParameter(std::string keyword, std::string value) {
             return 0;
         }
     } else if (keyword == "COMMENT") {}
-        //this->comment = value;
     else if (keyword == "DIMENSION")
         this->dimension = stoi(value);
     else if (keyword == "EDGE_WEIGHT_TYPE") {
@@ -122,7 +122,7 @@ bool TSPLIB_Parser::checkParameter(std::string keyword, std::string value) {
     return true;
 }
 
-std::string TSPLIB_Parser::trim(std::string s) {
+std::string TSPLIB_Parser::RemovePotentialSpacesBeforeAndAfter(std::string s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
     return s;

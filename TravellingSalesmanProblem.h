@@ -23,6 +23,7 @@ struct Subset {
     int lowerBound;
     long parent;
     bool isK1;
+
     Subset();
 };
 
@@ -31,9 +32,10 @@ class TravellingSalesmanProblem {
 private:
     int amountOfCities;
     int **arrayOfMatrixOfCities;
-    int *optimalWay_GreedyAlgorithmSolution;
+    int *allPossiblePermutations;
+    int *optimalWay_BruteForceAlgorithmSolution;
     int length;
-    bool setGreedyAlgorithm;
+    bool setBruteForceAlgorithm;
 
     int upperBound;
     std::string fileName;
@@ -42,47 +44,46 @@ private:
     std::vector<Subset> treeOfSubsets;
     std::vector<int> optimalWay_BranchAndBoundSolution;
 
-    int StandarizationOfMatrix(std::vector<std::vector<int>> &cities);
+    void PrepareMatrix(std::vector<std::vector<int>> &matrix);
 
-    int GetMinimumRow(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
-                      int amountOfCitiesInActualSubset);
+    int StandarizationOfMatrix(std::vector<std::vector<int>> &activeMatrix);
 
-    int GetMinimumColumn(std::vector<std::vector<int>> &cities, int row, int skippedColumn,
-                         int amountOfCitiesInActualSubset);
+    int GetMinimumRow(std::vector<std::vector<int>> &activeMatrix, int row, int skippedColumn = -1);
 
-    int SubtractMinimalValuesFromTheRows(std::vector<std::vector<int>> &cites, int row,
-                                         int amountOfCitiesInActualSubset);
+    int GetMinimumColumn(std::vector<std::vector<int>> &activeMatrix, int row, int skippedColumn = -1);
 
-    int SubtractMinimalValuesFromTheColumns(std::vector<std::vector<int>> &cities, int col,
-                                            int amountOfCitiesInActualSubset);
+    int SubtractMinimalValuesFromTheRows(std::vector<std::vector<int>> &activeMatrix, int row);
 
-    int CalculateCostOfResignation(std::vector<std::vector<int>> &m, std::pair<int, int> &path,
-                                   std::pair<int, int> &pos);
+    int SubtractMinimalValuesFromTheColumns(std::vector<std::vector<int>> &cities, int col);
 
-    void MatrixShortening(std::vector<std::vector<int>> &matrix, int row, int col);
+    int CalculateCostOfResignation(std::vector<std::vector<int>> &activeMatrix, std::pair<int, int> &route,
+                                   std::pair<int, int> &positionOfMatrixCell);
 
-    void EliminationOfSubtour(std::vector<std::vector<int>> &activeRoute, int index, std::pair<int, int> &path);
+    void MatrixShortening(std::vector<std::vector<int>> &activeMatrix, int row, int col);
 
-    void SetOptimalWay(std::vector<std::vector<int>> &m, int index);
+    void EliminationOfSubtour(std::vector<std::vector<int>> &activeMatrix, int index, std::pair<int, int> &route);
+
+    void SetOptimalWay(std::vector<std::vector<int>> &activeMatrix, int index);
+
+    void CalculateTheMostOptimalPermutation(int recursive_param);
 
 public:
-    void PrepareMatrix(std::vector<std::vector<int>> &m);
     TravellingSalesmanProblem();
 
     ~TravellingSalesmanProblem();
-
-    void ReadCitiesFromFile(std::string path);
 
     void DeleteTravellingSalesman();
 
     void LoadArrayOfMatrixOfCities(long long int **_cities, int _amountOfCities,
                                    std::string _fileName, std::string _graphType);
 
+    void ReadCitiesFromNormalFile(std::string path);
+
     void GenerateRandomCities(int amountOfCities = 0, int maxDistanceBetweenCity = 99);
 
     void PrintCitiesForTheTravellingSalesman(bool printInputMatrix);
 
-    void GreedyAlgorithm();
+    void BruteForceAlgorithm();
 
     void BranchAndBoundAlgorithm();
 
