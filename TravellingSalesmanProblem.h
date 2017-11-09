@@ -48,9 +48,9 @@ private:
 
     int StandarizationOfMatrix(std::vector<std::vector<int>> &activeMatrix);
 
-    int GetMinimumRow(std::vector<std::vector<int>> &activeMatrix, int row, int skippedColumn = -1);
+    int GetMinimumRow(std::vector<std::vector<int>> &activeMatrix, int row, int skipped = -1);
 
-    int GetMinimumColumn(std::vector<std::vector<int>> &activeMatrix, int row, int skippedColumn = -1);
+    int GetMinimumColumn(std::vector<std::vector<int>> &activeMatrix, int row, int skipped = -1);
 
     int SubtractMinimalValuesFromTheRows(std::vector<std::vector<int>> &activeMatrix, int row);
 

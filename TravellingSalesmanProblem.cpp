@@ -261,14 +261,19 @@ void TravellingSalesmanProblem::BranchAndBoundAlgorithm() {
     treeOfSubsets.clear();
     optimalWay_BranchAndBoundSolution.clear();
 
+    /* Stworzenie wektora wektorów o rozmiarze większym o 1 niż ilość miast na potrzeby przechowywania w pierwszym
+     * wierszu i kolumnie indeksów odpowiadających numerom miast.*/
     std::vector<std::vector<int>> InputMatrixOfCities(static_cast<unsigned long>(amountOfCities + 1),
                                                       std::vector<int>(static_cast<unsigned long>(amountOfCities + 1)));
     Subset subsetK2;
-    subsetK2.isK1 = false;
+    subsetK2.isK1 = false; //Oznaczenie że podzbiór K1 nie jest podzbiorem zawierającym wyróżniony łuk.
     Subset subsetK1;
 
+    /* Wywołanie funkcji uzupełniającej wektor wektorów danymi macierzy.
+     * W pierwszym wierszu i kolumnie znajdowały będą się indeksy odpowiadające numerom miast. */
     PrepareMatrix(InputMatrixOfCities);
 
+    /* Para na potrzeby przekazywania podzbiorom K1 (zawierającym wyróżniony łuk) pozycji trasy.*/
     std::pair<int, int> positionOfMatrixCell;
     std::pair<int, std::vector<std::vector<int>>> matrix;
     std::stack<std::pair<int, std::vector<std::vector<int>>>> stackOfMatrices;
@@ -283,17 +288,31 @@ void TravellingSalesmanProblem::BranchAndBoundAlgorithm() {
         std::vector<std::vector<int>> actualMatrix(stackOfMatrices.top().second);
         stackOfMatrices.pop();
 
+        /* Każda nowozrzucona ze stosu macierz zostaje poddana standaryzacji. Współczynnik standaryzacji
+         * przypisywany podzbiorowi K1 jako dolne ograniczenie.*/
         subsetK1.lowerBound = StandarizationOfMatrix(actualMatrix);
         if (id == 0) {
             treeOfSubsets.push_back(subsetK1);
         }
 
+        /* Jeżeli aktualnie obrabiana macierz jest większa niż 2x2 (nie licząc kolumny i wiersza indeksów) to
+         * kontynuuj algorytm skracania, wyznaczania kolejnych podzbiorów, w przeciwnym razie zakończ pętlę.
+         * Brak wejścia do pętli następuje również w sytuacji gdy dolne ograniczenie nowozrzuconej macierzy ze stosu
+         * jest większe niż dotychczasowa najlepsza wartość drogi - upperBound.*/
         while (actualMatrix.size() > 3 and treeOfSubsets[id].lowerBound < upperBound) {
+            /* Liczenie kosztu rezygnacji z tras "zerowych" i wyznaczenie największego oraz odpowiadającej mu pozycji.
+             * Zwrócony koszt zsumowany z dolnym ograniczeniem rodzica przypisywany podzbiorowi K2 jako dolne
+             * ograniczenie.*/
             subsetK2.lowerBound = treeOfSubsets[id].lowerBound +
                                   CalculateCostOfResignation(actualMatrix, subsetK1.route, positionOfMatrixCell);
             subsetK2.parent = id;
             treeOfSubsets.push_back(subsetK2);
 
+            /* Jeżeli podzbiór K2 posiada dolne ograniczenie mniejsze niż dotychczasowa najlepsza wartość drogi
+             * to następuje uznanie go za "obiecujący":
+             *      - skopiowanie macierzy,
+             *      - zablokowanie podcyklu poprzez wstawienie INT_MAX w miejsce pozycji max. trasy "zerowej",
+             *      - wrzucenie macierzy skojarzonej z powyższym K2 (poprzez ID) na stos.*/
             if (subsetK2.lowerBound < upperBound) {
                 matrix.first = (int) (treeOfSubsets.size() - 1);
                 matrix.second = actualMatrix;
@@ -301,25 +320,41 @@ void TravellingSalesmanProblem::BranchAndBoundAlgorithm() {
                 stackOfMatrices.push(matrix);
             }
 
+            /* Skrócenie aktualnej macierzy wg. wcześniej wyznaczonej pozycji max. trasy "zerowej".
+             * Odpowiednie indeksy w pierwszym wierszu i kolumnie również zostaną usunięte.
+             * Wcześniejszy zabieg przechowania indeksów w ten sposób pozwolił zaoszczędzić w tym miejscu
+             * fatygi związanej z dopasowaniem (naprawą pozycji) nowej kolejności indeksów.*/
             MatrixShortening(actualMatrix, positionOfMatrixCell.first, positionOfMatrixCell.second);
+
+            /* Usunięcie podcyklu w skróconej macierzy.*/
             EliminationOfSubtour(actualMatrix, (int) (treeOfSubsets.size() - 1), subsetK1.route);
 
+            /* Macierz zostaje poddana procesowi standaryzacji. Współczynnik standaryzacji zsumowany z dolnym
+             * ograniczeniem rodzica przypisywany podzbiorowi K1 jako dolne ograniczenie.*/
             subsetK1.lowerBound = treeOfSubsets[id].lowerBound + StandarizationOfMatrix(actualMatrix);
             subsetK1.parent = id;
             treeOfSubsets.push_back(subsetK1);
 
+            /* Tworzenie kolejnych podzbiorów w linii wyróżnionego łuku - K1.*/
             id = (int) (treeOfSubsets.size() - 1);
         }
 
+        /* Kod wykonujący się w sytuacji skrócenia macierzy do rozmiarów 2x2 (nie licząc wiersza i kolumny
+         * przechowujących indeksy.*/
         if (actualMatrix.size() == 3) {
             if (subsetK1.lowerBound < upperBound) {
-                upperBound = subsetK1.lowerBound;
+                upperBound = subsetK1.lowerBound; // Dolne ograniczenie zostaje przypisane jako najlepsza droga.
+                /* Dodanie ostatnich dwóch podzbiorów zawierających wyróżniony łuk oraz zyznaczenie drogi
+                 * na podstawie tras podzbiorów K1.*/
                 SetOptimalWay(actualMatrix, (int) (treeOfSubsets.size() + 1));
             }
         }
     }
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// Funkcja przygotowująca macierz wejściową (wektor wektorów) na potrzeby algorytmu podziału i ograniczeń.
+// ---------------------------------------------------------------------------------------------------------
 void TravellingSalesmanProblem::PrepareMatrix(std::vector<std::vector<int>> &matrix) {
     for (int i = 0; i < matrix.size(); i++) {
         matrix[i][0] = i;
@@ -334,31 +369,30 @@ void TravellingSalesmanProblem::PrepareMatrix(std::vector<std::vector<int>> &mat
     }
 }
 
+// --------------------------------------------------------------------------
+// Funkcja eliminująca podcykl na potrzeby algorytmu podziału i ograniczeń.
+// --------------------------------------------------------------------------
 void TravellingSalesmanProblem::EliminationOfSubtour(std::vector<std::vector<int>> &activeMatrix, int index,
                                                      std::pair<int, int> &route) {
     std::vector<std::pair<int, int> > _routes;
-    // Research of all the included path
-    while (index != 0) { // Iterate until we are not arrived at the root
+    while (index != 0) {
         if (treeOfSubsets[index].isK1) {
             _routes.push_back(treeOfSubsets[index].route);
         }
         index = (int) treeOfSubsets[index].parent;
     }
 
-    // Research of the longest subtour
     std::deque<int> subtour = {route.first, route.second};
     bool found = true;
     while (found) {
         found = false;
         for (const std::pair<int, int> &_route : _routes) {
-            // Check that "segment" go ahead in a subtour
             if (_route.second == subtour.front()) {
                 subtour.push_front(_route.second);
                 subtour.push_front(_route.first);
                 found = true;
                 break;
             }
-                // Check that "segment" go behind in a subtour
             else if (_route.first == subtour.back()) {
                 subtour.push_back(_route.first);
                 subtour.push_back(_route.second);
@@ -369,26 +403,28 @@ void TravellingSalesmanProblem::EliminationOfSubtour(std::vector<std::vector<int
     }
 
     std::pair<int, int> positionOfMatrixCell;
-    int founds = 0;
-    // Research of the segment to delete in the matrix
+    int foundsPositionIndexes = 0;
     for (int i = 1; i < activeMatrix.size(); i++) {
         if (activeMatrix[i][0] == subtour.back()) {
             positionOfMatrixCell.first = i;
-            founds++;
+            foundsPositionIndexes++;
         }
         if (activeMatrix[0][i] == subtour.front()) {
             positionOfMatrixCell.second = i;
-            founds++;
+            foundsPositionIndexes++;
         }
     }
 
-    // If the segment to delete has been found, then delete it by giving him an infinite cost
-    if (founds == 2) {
-        //m.setValue(pos.first, pos.second, this->INT_MAX);
+    if (foundsPositionIndexes == 2) {
         activeMatrix[positionOfMatrixCell.first][positionOfMatrixCell.second] = INT_MAX;
     }
 }
 
+// --------------------------------------------------------------------------------------------------------
+// Funkcja wyznaczająca maksymalny koszt rezygnacji z tras "zerowych",
+// zwracająca go w celu policzenia dolnego oszacowania podzbioru K2,
+// przekazująca jego pozycję podzbiorowi K1 jako punkt trasy na potrzeby algorytmu podziału i ograniczeń.
+// --------------------------------------------------------------------------------------------------------
 int
 TravellingSalesmanProblem::CalculateCostOfResignation(std::vector<std::vector<int>> &activeMatrix,
                                                       std::pair<int, int> &route,
@@ -414,11 +450,17 @@ TravellingSalesmanProblem::CalculateCostOfResignation(std::vector<std::vector<in
     return max;
 }
 
-int TravellingSalesmanProblem::GetMinimumRow(std::vector<std::vector<int>> &activeMatrix, int row, int skippedColumn) {
+// -----------------------------------------------------------------------------------------------------------------
+// Funkcja zwracająca minimalną wartość w wierszu. Wywołana z parametrem skipped jako pozycją miejsca zerowego
+// okaże się przydatną funkcją do wyznaczenia minimów na potrzeby algorytmu wyznaczania maksymalnego kosztu trasy,
+// ponieważ w tym przypadku zero staje się minimum jeżeli wystąpi 2 razy. Pominięcie zera rozwiązuje problem.
+// Funkcja na potrzeby algorytmu podziału i ograniczeń.
+// ------------------------------------------------------------------------------------------------------------------
+int TravellingSalesmanProblem::GetMinimumRow(std::vector<std::vector<int>> &activeMatrix, int row, int skipped) {
     int min = INT_MAX;
     for (int i = 1; i < activeMatrix.size(); i++) {
         int currentValue = activeMatrix[row][i];
-        if (currentValue != INT_MAX && i != skippedColumn) {
+        if (currentValue != INT_MAX && i != skipped) {
             min = (min < currentValue ? min : currentValue);
         }
     }
@@ -426,12 +468,19 @@ int TravellingSalesmanProblem::GetMinimumRow(std::vector<std::vector<int>> &acti
     return min;
 }
 
+
+// -----------------------------------------------------------------------------------------------------------------
+// Funkcja zwracająca minimalną wartość w kolumnie. Wywołana z parametrem skipped jako pozycją miejsca zerowego
+// okaże się przydatną funkcją do wyznaczenia minimów na potrzeby algorytmu wyznaczania maksymalnego kosztu trasy,
+// ponieważ w tym przypadku zero staje się minimum jeżeli wystąpi 2 razy. Pominięcie zera rozwiązuje problem.
+// Funkcja na potrzeby algorytmu podziału i ograniczeń.
+// ------------------------------------------------------------------------------------------------------------------
 int TravellingSalesmanProblem::GetMinimumColumn(std::vector<std::vector<int>> &activeMatrix, int column,
-                                                int skippedColumn) {
+                                                int skipped) {
     int min = INT_MAX;
     for (int i = 1; i < activeMatrix.size(); i++) {
         int currentValue = activeMatrix[i][column];
-        if (currentValue != INT_MAX && i != skippedColumn) {
+        if (currentValue != INT_MAX && i != skipped) {
             min = (min < currentValue ? min : currentValue);
         }
     }
@@ -439,6 +488,10 @@ int TravellingSalesmanProblem::GetMinimumColumn(std::vector<std::vector<int>> &a
     return min;
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// Odejmuje minimalne wartości wierszy od wszystkich elementów wiersza na potrzeby algorytmu standaryzacji.
+// Funkcja na potrzeby algorytmu podziału i ograniczeń.
+// ---------------------------------------------------------------------------------------------------------
 int
 TravellingSalesmanProblem::SubtractMinimalValuesFromTheRows(std::vector<std::vector<int>> &activeMatrix, int row) {
     int min = GetMinimumRow(activeMatrix, row);
@@ -451,6 +504,10 @@ TravellingSalesmanProblem::SubtractMinimalValuesFromTheRows(std::vector<std::vec
     return min;
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// Odejmuje minimalne wartości kolumn od wszystkich elementów kolumny na potrzeby algorytmu standaryzacji.
+// Funkcja na potrzeby algorytmu podziału i ograniczeń.
+// ---------------------------------------------------------------------------------------------------------
 int
 TravellingSalesmanProblem::SubtractMinimalValuesFromTheColumns(std::vector<std::vector<int>> &activeMatrix, int col) {
     int min = GetMinimumColumn(activeMatrix, col);
@@ -463,6 +520,12 @@ TravellingSalesmanProblem::SubtractMinimalValuesFromTheColumns(std::vector<std::
     return min;
 }
 
+// ---------------------------------------------------------------------------------------------------------
+// Standaryzacja - wywołanie SubtractMinimalValuesFromTheRows dla wszystkich wierszy, następnie
+// SubtractMinimalValuesFromTheColumns dla wszystkich kolumn, wyznaczenie współczynnika standaryzacji
+// będącego sumą wszystkich wartości minimalnych i zwrócenie go w celu policzenia dolnego oszacowania.
+// Funkcja na potrzeby algorytmu podziału i ograniczeń.
+// ---------------------------------------------------------------------------------------------------------
 int TravellingSalesmanProblem::StandarizationOfMatrix(std::vector<std::vector<int>> &activeMatrix) {
     int minRowTotal = 0;
     for (int i = 1; i < activeMatrix.size(); i++) {
@@ -477,6 +540,11 @@ int TravellingSalesmanProblem::StandarizationOfMatrix(std::vector<std::vector<in
     return minRowTotal + minColTotal;
 }
 
+// -------------------------------------------------------------------------------------------------
+// Dodanie dwóch pozostałych podzbiorów K1 do drzewa podzbiorów (wyznaczenie poprzez odnalezienie
+// indeksów miejsc zerowych w macierzy 2x2. Następnie wyznaczenie aktualnei optymalnej ścieżki na
+// podstawie par tras. Funkcja na potrzeby algorytmu podziału i ograniczeń.
+// -------------------------------------------------------------------------------------------------
 void TravellingSalesmanProblem::SetOptimalWay(std::vector<std::vector<int>> &activeMatrix, int index) {
     Subset K1;
 
@@ -522,6 +590,9 @@ void TravellingSalesmanProblem::SetOptimalWay(std::vector<std::vector<int>> &act
     optimalWay_BranchAndBoundSolution = optimalWay;
 }
 
+// -------------------------------------------------------------------------------------------------
+// Skrócenie macierzy - usunięcie wiersza i kolumny na potrzeby algorytmu podziału i ograniczeń.
+// -------------------------------------------------------------------------------------------------
 void TravellingSalesmanProblem::MatrixShortening(std::vector<std::vector<int>> &activeMatrix, int row, int col) {
     auto it_row = activeMatrix.begin() + row;
     activeMatrix.erase(it_row);
@@ -559,6 +630,9 @@ void TravellingSalesmanProblem::PrintSolution() {
     }
 }
 
+// -----------------------------------------------------------
+// Funkcja na potrzeby testowania - zwraca długość ścieżki.
+// -----------------------------------------------------------
 int TravellingSalesmanProblem::GetTourLength(std::string whichAlgorithm) {
     if (whichAlgorithm == "bruteforce")
         return length;

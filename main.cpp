@@ -12,7 +12,7 @@ void displayMenu(const std::string &info) //Menu dla problemu komiwojażera.
     std::cout << "2. Wczytaj z pliku TXT." << std::endl;
     std::cout << "3. Wygeneruj miasta losowo." << std::endl;
     std::cout << "4. Wyświetl informacje o danych wejściowych problemu." << std::endl;
-    std::cout << "5. Algorytm - zachłanny." << std::endl;
+    std::cout << "5. Algorytm - przeszukiwanie zupełne." << std::endl;
     std::cout << "6. Algorytm - metoda podziału i ograniczeń." << std::endl;
     std::cout << "0. Powrót do menu." << std::endl;
     std::cout << "Podaj opcje: ";
