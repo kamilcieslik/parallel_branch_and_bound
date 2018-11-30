@@ -4,6 +4,7 @@
 
 #include "TravellingSalesmanProblem.h"
 #include <stack>
+#include <random>
 
 Subset::Subset() : isK1(true), parent(INT_MIN) {
 }
